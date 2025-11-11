@@ -82,6 +82,9 @@ DATABASES = {
         "PASSWORD": "postgres",
         "HOST": "localhost",
         "PORT": "6000",
+        "TEST": {
+            "NAME": "product_finder_test",
+        }
     }
 }
 
