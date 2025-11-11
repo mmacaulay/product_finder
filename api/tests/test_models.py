@@ -1,6 +1,6 @@
 from django.test import TestCase
 from django.core.exceptions import ValidationError
-from .models import DE_Product
+from ..models import DE_Product
 
 class DE_ProductModelTest(TestCase):
     """Test the DE_Product model"""

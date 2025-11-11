@@ -1,7 +1,7 @@
 from django.test import TestCase
 from graphene.test import Client
-from .schema import schema
-from .models import DE_Product
+from api.graphql.schema import schema
+from api.models import DE_Product
 
 class GraphQLQueryTest(TestCase):
     """Test GraphQL queries"""
