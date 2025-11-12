@@ -1,6 +1,7 @@
 import graphene
 from api.models import Product
 from api.graphql.types import ProductType
+from api.services.de_product_api import DEProductAPI
 
 class Query(graphene.ObjectType):
     all_products = graphene.List(ProductType)
@@ -11,11 +12,25 @@ class Query(graphene.ObjectType):
         return Product.objects.all()
 
     def resolve_product_by_upc(self, info, upc):
-        deproducts = Product.objects.filter(upc_code=upc)
-        if deproducts.exists():
-            return deproducts.first()
+        products = Product.objects.filter(upc_code=upc)
+        if products.exists():
+            return products.first()
         else:
-            return None
+            de_product_api = DEProductAPI()
+            de_product = de_product_api.get_product(upc)
+            if de_product:
+                # Log the response to see its structure
+                print(f"DE Product API response: {de_product}")
+                product = Product.objects.create(
+                    upc_code=upc,
+                    name=de_product['description'],
+                    brand=de_product['brand'],
+                    de_product_data=de_product,
+                )
+                product.save()
+                return product
+            else:
+                return None
 
     def resolve_product_by_id(self, info, id):
         try:
