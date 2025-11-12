@@ -20,6 +20,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 env = environ.Env(
     DEBUG=(bool, False),
     ALLOWED_HOSTS=(list, []),
+    LOG_LEVEL=(str, None),
 )
 
 # Read .env file
@@ -35,7 +36,17 @@ SECRET_KEY = env('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool('DEBUG', default=True)
 
-ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=[])
+# Allow requests from local network
+# In DEBUG mode, use wildcard to allow all hosts for local network access
+# In production, use the ALLOWED_HOSTS environment variable to specify allowed hosts
+if DEBUG:
+    # Allow all hosts in DEBUG mode for local network access
+    # This enables requests from other devices/apps on your local network
+    ALLOWED_HOSTS = ['*']
+else:
+    # In production, use environment variable or default to localhost
+    default_hosts = ['localhost', '127.0.0.1']
+    ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=default_hosts)
 
 
 # Application definition
@@ -134,3 +145,67 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# Logging configuration
+# https://docs.djangoproject.com/en/5.2/topics/logging/
+
+# Determine log level from environment or default based on DEBUG mode
+log_level = env('LOG_LEVEL', default='DEBUG' if DEBUG else 'INFO')
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {asctime} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+        # Optional: File handler for production
+        # Uncomment and configure if you want file-based logging
+        # 'file': {
+        #     'class': 'logging.handlers.RotatingFileHandler',
+        #     'filename': BASE_DIR / 'logs' / 'django.log',
+        #     'maxBytes': 1024 * 1024 * 10,  # 10 MB
+        #     'backupCount': 5,
+        #     'formatter': 'verbose',
+        # },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': log_level,
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': log_level,
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'ERROR' if not DEBUG else 'DEBUG',
+            'propagate': False,
+        },
+        # Your application loggers
+        'api': {
+            'handlers': ['console'],
+            'level': log_level,
+            'propagate': False,
+        },
+        'api.services': {
+            'handlers': ['console'],
+            'level': log_level,
+            'propagate': False,
+        },
+    },
+}

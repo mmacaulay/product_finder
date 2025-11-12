@@ -9,7 +9,6 @@ class ProductType(DjangoObjectType):
           'upc_code',
           'name',
           'brand',
-          'de_product_data',
           'created_at',
           'updated_at',
         )

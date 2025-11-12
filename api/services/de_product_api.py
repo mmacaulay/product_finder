@@ -27,13 +27,12 @@ class DEProductAPI:
         auth_token = self.make_auth_token(upc_code)
         query_params = {
             'upc_code': upc_code,
-            'upcCode': upc_code,
             'app_key': self.app_key,
             'signature': auth_token,  
             'language': 'en',
             'field_names': self.field_names,
         }
-        print(query_params)
+
         logger.debug(f'Querying DE Product API with params: {query_params}')
         response = requests.get(self.base_url, params=query_params)
 
@@ -41,8 +40,8 @@ class DEProductAPI:
             raise Exception(f'Failed to get product: {response.status_code} {response.text}')
 
         result = response.json()
-        print(f"API Response structure: {result}")
         logger.debug(f'API Response: {result}')
+        
         if int(result['entries']) > 0:
             return result['products'][0]
         else:

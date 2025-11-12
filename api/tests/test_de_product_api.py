@@ -96,7 +96,6 @@ class DEProductAPITest(MockedAPITestCase):
         self.assertEqual(len(responses.calls), 1)
         request = responses.calls[0].request
         self.assertIn('upc_code', request.url)
-        self.assertIn('upcCode', request.url)
         self.assertIn('app_key', request.url)
         self.assertIn('signature', request.url)
         self.assertIn('language', request.url)

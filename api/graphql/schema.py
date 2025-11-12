@@ -19,8 +19,6 @@ class Query(graphene.ObjectType):
             de_product_api = DEProductAPI()
             de_product = de_product_api.get_product(upc)
             if de_product:
-                # Log the response to see its structure
-                print(f"DE Product API response: {de_product}")
                 product = Product.objects.create(
                     upc_code=upc,
                     name=de_product['description'],
