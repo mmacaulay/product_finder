@@ -1,21 +1,21 @@
 from django.test import TestCase
 from graphene.test import Client
 from api.graphql.schema import schema
-from api.models import DE_Product
+from api.models import Product
 
 class GraphQLQueryTest(TestCase):
     """Test GraphQL queries"""
     
     def setUp(self):
         """Create test products"""
-        self.product1 = DE_Product.objects.create(
+        self.product1 = Product.objects.create(
             upc_code='111111111111',
-            description='Product One',
+            name='Product One',
             brand='Brand A'
         )
-        self.product2 = DE_Product.objects.create(
+        self.product2 = Product.objects.create(
             upc_code='222222222222',
-            description='Product Two',
+            name='Product Two',
             brand='Brand B'
         )
         self.client = Client(schema)
@@ -26,7 +26,7 @@ class GraphQLQueryTest(TestCase):
             query {
                 allProducts {
                     upcCode
-                    description
+                    name
                     brand
                 }
             }
@@ -42,7 +42,7 @@ class GraphQLQueryTest(TestCase):
             query {
                 productByUpc(upc: "111111111111") {
                     upcCode
-                    description
+                    name
                     brand
                 }
             }
@@ -51,7 +51,7 @@ class GraphQLQueryTest(TestCase):
         self.assertIsNone(result.get('errors'))
         product = result['data']['productByUpc']
         self.assertEqual(product['upcCode'], '111111111111')
-        self.assertEqual(product['description'], 'Product One')
+        self.assertEqual(product['name'], 'Product One')
     
     def test_query_product_by_id(self):
         """Test querying a product by ID"""
@@ -60,14 +60,14 @@ class GraphQLQueryTest(TestCase):
                 productById(id: {self.product1.id}) {{
                     id
                     upcCode
-                    description
+                    name
                 }}
             }}
         '''
         result = self.client.execute(query)
         self.assertIsNone(result.get('errors'))
         product = result['data']['productById']
-        self.assertEqual(product['description'], 'Product One')
+        self.assertEqual(product['name'], 'Product One')
     
     def test_query_nonexistent_upc(self):
         """Test querying with non-existent UPC returns None"""

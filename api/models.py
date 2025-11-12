@@ -1,60 +1,19 @@
 from django.db import models
 from django.urls import reverse
 
-class DE_Product(models.Model):
+class Product(models.Model):
     upc_code = models.CharField(max_length=12, null=False, unique=True)
-    description = models.CharField(max_length=255, null=False)
-    uom = models.CharField(max_length=128, null=True, blank=True)
-    brand = models.CharField(max_length=255, null=True, blank=True)
-    language = models.CharField(max_length=255, null=True, blank=True)
-    website = models.CharField(max_length=512, null=True, blank=True)
-    product_web_page = models.CharField(max_length=512, null=True, blank=True)
-    image = models.CharField(max_length=512, null=True, blank=True)
-    thumbnail_url = models.CharField(max_length=512, null=True, blank=True)
-    thumbnail_width = models.CharField(max_length=512, null=True, blank=True)
-    thumbnail_height = models.CharField(max_length=512, null=True, blank=True)
-    usage = models.TextField(null=True, blank=True)
-    ingredients = models.TextField(null=True, blank=True)
-    nutrition = models.TextField(null=True, blank=True)
-    categories = models.TextField(null=True, blank=True)
-    manufacturer_name = models.CharField(max_length=255, null=True, blank=True)
-    manufacturer_address = models.CharField(max_length=255, null=True, blank=True)
-    manufacturer_address_2 = models.CharField(max_length=255, null=True, blank=True)
-    manufacturer_city = models.CharField(max_length=255, null=True, blank=True)
-    manufacturer_state = models.CharField(max_length=255, null=True, blank=True)
-    manufacturer_postal_code = models.CharField(max_length=255, null=True, blank=True)
-    manufacturer_country = models.CharField(max_length=255, null=True, blank=True)
-    manufacturer_phone = models.CharField(max_length=255, null=True, blank=True)
-    manufacturer_contact = models.CharField(max_length=255, null=True, blank=True)
-    gcp = models.CharField(max_length=255, null=True, blank=True)
-    gcp_company = models.CharField(max_length=255, null=True, blank=True)
-    gcp_gln = models.CharField(max_length=255, null=True, blank=True)
-    gcp_address_1 = models.CharField(max_length=255, null=True, blank=True)
-    gcp_address_2 = models.CharField(max_length=255, null=True, blank=True)
-    gcp_city = models.CharField(max_length=255, null=True, blank=True)
-    gcp_state = models.CharField(max_length=255, null=True, blank=True)
-    gcp_postal_code = models.CharField(max_length=255, null=True, blank=True)
-    gcp_country = models.CharField(max_length=255, null=True, blank=True)
-    gcp_phone = models.CharField(max_length=255, null=True, blank=True)
-    gcp_contact = models.CharField(max_length=255, null=True, blank=True)
-    gcp_email = models.CharField(max_length=255, null=True, blank=True)
-    gcp_fax = models.CharField(max_length=255, null=True, blank=True)
-    prices = models.TextField(null=True, blank=True)
-    system4 = models.BooleanField(null=True, blank=True)
+    name = models.CharField(max_length=255, null=False)
+    brand = models.CharField(max_length=255, null=False, blank=True)
+    de_product_data = models.JSONField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return self.description
-
+        return self.name
 
     def get_absolute_url(self):
         return reverse('book-detail', args=[str(self.id)])
-
-    class Meta:
-        verbose_name = "Digit-Eyes Product"
-        verbose_name_plural = "Digit-Eyes Products"
-
 
 # 1. description: The title (short description) of the item (up to 255 characters)
 # 2. uom: Unit of measure: up to 128 characters that describe the item size or weight. Examples

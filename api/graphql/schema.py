@@ -1,5 +1,5 @@
 import graphene
-from api.models import DE_Product
+from api.models import Product
 from api.graphql.types import ProductType
 
 class Query(graphene.ObjectType):
@@ -8,10 +8,10 @@ class Query(graphene.ObjectType):
     product_by_id = graphene.Field(ProductType, id=graphene.Int(required=True))
 
     def resolve_all_products(self, info):
-        return DE_Product.objects.all()
+        return Product.objects.all()
 
     def resolve_product_by_upc(self, info, upc):
-        deproducts = DE_Product.objects.filter(upc_code=upc)
+        deproducts = Product.objects.filter(upc_code=upc)
         if deproducts.exists():
             return deproducts.first()
         else:
@@ -19,8 +19,8 @@ class Query(graphene.ObjectType):
 
     def resolve_product_by_id(self, info, id):
         try:
-            return DE_Product.objects.get(id=id)
-        except DE_Product.DoesNotExist:
+            return Product.objects.get(id=id)
+        except Product.DoesNotExist:
             return None
 
 schema = graphene.Schema(query=Query)

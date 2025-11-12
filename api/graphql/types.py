@@ -1,50 +1,15 @@
 from graphene_django import DjangoObjectType
-from api.models import DE_Product
+from api.models import Product
 
 class ProductType(DjangoObjectType):
     class Meta:
-        model = DE_Product
+        model = Product
         fields = (
           'id',
           'upc_code',
-          'description',
-          'uom',
+          'name',
           'brand',
-          'language',
-          'website',
-          'product_web_page',
-          'image',
-          'thumbnail_url',
-          'thumbnail_width',
-          'thumbnail_height',
-          'usage',
-          'ingredients',
-          'nutrition',
-          'categories',
-          'manufacturer_name',
-          'manufacturer_address',
-          'manufacturer_address_2',
-          'manufacturer_city',
-          'manufacturer_state',
-          'manufacturer_postal_code',
-          'manufacturer_country',
-          'manufacturer_phone',
-          'manufacturer_contact',
-          'gcp',
-          'gcp_company',
-          'gcp_gln',
-          'gcp_address_1',
-          'gcp_address_2',
-          'gcp_city',
-          'gcp_state',
-          'gcp_postal_code',
-          'gcp_country',
-          'gcp_phone',
-          'gcp_contact',
-          'gcp_email',
-          'gcp_fax',
-          'prices',
-          'system4',
+          'de_product_data',
           'created_at',
           'updated_at',
         )
