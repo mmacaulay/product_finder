@@ -1,8 +1,8 @@
-from django.test import TestCase
+from api.tests.base import MockedAPITestCase
 from django.core.exceptions import ValidationError
 from ..models import Product
 
-class ProductModelTest(TestCase):
+class ProductModelTest(MockedAPITestCase):
     """Test the Product model"""
     
     def setUp(self):
