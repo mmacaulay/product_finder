@@ -42,7 +42,7 @@ uv sync
 
 ```bash
 # Copy environment template
-cp .env.example .env
+cp env.example .env
 
 # Edit .env with your credentials
 ```

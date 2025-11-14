@@ -26,10 +26,10 @@ uv sync
 
 ### 2. Configure Environment Variables
 
-Copy `.env.example` to `.env` and add your API keys:
+Copy `env.example` to `.env` and add your API keys:
 
 ```bash
-cp .env.example .env
+cp env.example .env
 ```
 
 Edit `.env` and add at least one LLM provider API key:

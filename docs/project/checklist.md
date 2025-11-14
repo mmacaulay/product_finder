@@ -29,7 +29,7 @@ Use this checklist to track implementation progress. Mark items as complete with
 - [ ] Add OpenAI dependency to `pyproject.toml`
 - [ ] Run `uv sync` to install dependencies
 - [ ] Add `LLM_CONFIG` to `product_finder/settings.py`
-- [ ] Update `.env.example` with new environment variables
+- [ ] Update `env.example` with new environment variables
 - [ ] Update `README.md` with LLM setup instructions
 
 ### Testing (Phase 1)
