@@ -209,3 +209,25 @@ LOGGING = {
         },
     },
 }
+
+
+# LLM Configuration
+LLM_CONFIG = {
+    'default_provider': env('DEFAULT_LLM_PROVIDER', default='perplexity'),
+    'cache_ttl_days': env.int('LLM_CACHE_TTL_DAYS', default=30),
+    'enable_caching': env.bool('LLM_ENABLE_CACHING', default=True),
+    'providers': {
+        'openai': {
+            'api_key': env('OPENAI_API_KEY', default=''),
+            'model': env('OPENAI_MODEL', default='gpt-4-turbo-preview'),
+            'max_tokens': env.int('OPENAI_MAX_TOKENS', default=500),
+            'temperature': env.float('OPENAI_TEMPERATURE', default=0.7),
+        },
+        'perplexity': {
+            'api_key': env('PERPLEXITY_API_KEY', default=''),
+            'model': env('PERPLEXITY_MODEL', default='llama-3.1-sonar-large-128k-online'),
+            'max_tokens': env.int('PERPLEXITY_MAX_TOKENS', default=500),
+            'temperature': env.float('PERPLEXITY_TEMPERATURE', default=0.7),
+        }
+    }
+}
