@@ -373,3 +373,211 @@ class LLMQueryResultModelTestCase(TestCase):
                 metadata={}
             )
 
+
+class ProviderCostCalculationTestCase(TestCase):
+    """Test that providers correctly calculate costs using the pricing module"""
+    
+    def test_openai_provider_cost_estimation_gpt5_nano(self):
+        """Test OpenAI provider cost estimation for GPT-5 Nano"""
+        from api.services.llm.openai_provider import OpenAIProvider
+        
+        provider = OpenAIProvider(
+            api_key='test-key',
+            model='gpt-5-nano'
+        )
+        
+        # Estimate input cost for 10,000 tokens
+        input_cost = provider.estimate_cost(10_000, is_input=True)
+        # Expected: 10,000/1M * 0.05 = 0.0005
+        self.assertAlmostEqual(input_cost, 0.0005, places=6)
+        
+        # Estimate output cost for 10,000 tokens
+        output_cost = provider.estimate_cost(10_000, is_input=False)
+        # Expected: 10,000/1M * 0.40 = 0.004
+        self.assertAlmostEqual(output_cost, 0.004, places=6)
+    
+    def test_openai_provider_cost_estimation_gpt5_mini(self):
+        """Test OpenAI provider cost estimation for GPT-5 Mini"""
+        from api.services.llm.openai_provider import OpenAIProvider
+        
+        provider = OpenAIProvider(
+            api_key='test-key',
+            model='gpt-5-mini'
+        )
+        
+        # Estimate input cost
+        input_cost = provider.estimate_cost(10_000, is_input=True)
+        # Expected: 10,000/1M * 0.25 = 0.0025
+        self.assertAlmostEqual(input_cost, 0.0025, places=6)
+        
+        # Estimate output cost
+        output_cost = provider.estimate_cost(10_000, is_input=False)
+        # Expected: 10,000/1M * 2.00 = 0.02
+        self.assertAlmostEqual(output_cost, 0.02, places=6)
+    
+    def test_perplexity_provider_cost_estimation_sonar(self):
+        """Test Perplexity provider cost estimation for Sonar"""
+        from api.services.llm.perplexity_provider import PerplexityProvider
+        
+        provider = PerplexityProvider(
+            api_key='test-key',
+            model='sonar'
+        )
+        
+        # Estimate cost (same for input and output on Perplexity)
+        cost = provider.estimate_cost(10_000, is_input=True)
+        # Expected: 10,000/1M * 1.00 = 0.01
+        self.assertAlmostEqual(cost, 0.01, places=6)
+    
+    def test_perplexity_provider_cost_estimation_sonar_pro(self):
+        """Test Perplexity provider cost estimation for Sonar Pro"""
+        from api.services.llm.perplexity_provider import PerplexityProvider
+        
+        provider = PerplexityProvider(
+            api_key='test-key',
+            model='sonar-pro'
+        )
+        
+        # Estimate input cost
+        input_cost = provider.estimate_cost(10_000, is_input=True)
+        # Expected: 10,000/1M * 3.00 = 0.03
+        self.assertAlmostEqual(input_cost, 0.03, places=6)
+        
+        # Estimate output cost
+        output_cost = provider.estimate_cost(10_000, is_input=False)
+        # Expected: 10,000/1M * 15.00 = 0.15
+        self.assertAlmostEqual(output_cost, 0.15, places=6)
+    
+    @patch('api.services.llm.openai_provider.OpenAI')
+    def test_openai_query_includes_accurate_cost(self, mock_openai_class):
+        """Test that OpenAI query() returns accurate cost estimates"""
+        from api.services.llm.openai_provider import OpenAIProvider
+        
+        # Mock OpenAI response
+        mock_response = Mock()
+        mock_response.choices = [Mock(
+            message=Mock(content='Test response'),
+            finish_reason='stop'
+        )]
+        mock_response.usage = Mock(
+            total_tokens=1000,
+            prompt_tokens=600,
+            completion_tokens=400
+        )
+        mock_response.model = 'gpt-5-nano'
+        mock_response.system_fingerprint = 'test'
+        
+        mock_client = Mock()
+        mock_client.chat.completions.create.return_value = mock_response
+        mock_openai_class.return_value = mock_client
+        
+        provider = OpenAIProvider(api_key='test-key', model='gpt-5-nano')
+        result = provider.query('Test prompt')
+        
+        # Verify cost is calculated correctly
+        # 600 input * 0.05/1M + 400 output * 0.40/1M = 0.00003 + 0.00016 = 0.00019
+        expected_cost = 0.00019
+        self.assertAlmostEqual(
+            result['metadata']['cost_estimate'],
+            expected_cost,
+            places=6
+        )
+    
+    @patch('httpx.Client')
+    def test_perplexity_query_includes_accurate_cost(self, mock_client_class):
+        """Test that Perplexity query() returns accurate cost estimates"""
+        from api.services.llm.perplexity_provider import PerplexityProvider
+        
+        # Mock httpx response
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            'choices': [{
+                'message': {'content': 'Test response'},
+                'finish_reason': 'stop'
+            }],
+            'usage': {
+                'total_tokens': 1000,
+                'prompt_tokens': 600,
+                'completion_tokens': 400
+            },
+            'citations': []
+        }
+        
+        mock_client_instance = Mock()
+        mock_client_instance.post.return_value = mock_response
+        mock_client_instance.__enter__ = Mock(return_value=mock_client_instance)
+        mock_client_instance.__exit__ = Mock(return_value=False)
+        mock_client_class.return_value = mock_client_instance
+        
+        provider = PerplexityProvider(
+            api_key='test-key',
+            model='sonar'
+        )
+        result = provider.query('Test prompt')
+        
+        # Verify cost is calculated correctly
+        # 600 input * 1.00/1M + 400 output * 1.00/1M = 0.0006 + 0.0004 = 0.001
+        expected_cost = 0.001
+        self.assertAlmostEqual(
+            result['metadata']['cost_estimate'],
+            expected_cost,
+            places=6
+        )
+    
+    def test_provider_fallback_on_unknown_model(self):
+        """Test that providers handle unknown models gracefully"""
+        from api.services.llm.openai_provider import OpenAIProvider
+        
+        # Unknown model should still work (fallback to gpt-5-mini pricing)
+        provider = OpenAIProvider(
+            api_key='test-key',
+            model='gpt-99-unknown'
+        )
+        
+        # Should not raise an error
+        cost = provider.estimate_cost(1000, is_input=True)
+        self.assertGreater(cost, 0.0)
+    
+    @patch('api.services.llm.openai_provider.OpenAI')
+    def test_cost_metadata_included_in_response(self, mock_openai_class):
+        """Test that cost metadata is properly included in query response"""
+        from api.services.llm.openai_provider import OpenAIProvider
+        
+        # Mock OpenAI response
+        mock_response = Mock()
+        mock_response.choices = [Mock(
+            message=Mock(content='Test response'),
+            finish_reason='stop'
+        )]
+        mock_response.usage = Mock(
+            total_tokens=500,
+            prompt_tokens=300,
+            completion_tokens=200
+        )
+        mock_response.model = 'gpt-5-nano'
+        mock_response.system_fingerprint = 'test'
+        
+        mock_client = Mock()
+        mock_client.chat.completions.create.return_value = mock_response
+        mock_openai_class.return_value = mock_client
+        
+        provider = OpenAIProvider(api_key='test-key', model='gpt-5-nano')
+        result = provider.query('Test prompt')
+        
+        # Verify metadata structure
+        metadata = result['metadata']
+        self.assertIn('cost_estimate', metadata)
+        self.assertIn('tokens_used', metadata)
+        self.assertIn('prompt_tokens', metadata)
+        self.assertIn('completion_tokens', metadata)
+        self.assertIn('model', metadata)
+        
+        # Verify token counts
+        self.assertEqual(metadata['tokens_used'], 500)
+        self.assertEqual(metadata['prompt_tokens'], 300)
+        self.assertEqual(metadata['completion_tokens'], 200)
+        
+        # Verify cost is non-zero
+        self.assertGreater(metadata['cost_estimate'], 0.0)
+

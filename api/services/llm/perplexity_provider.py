@@ -10,6 +10,7 @@ import httpx
 import logging
 from typing import Dict, Any, Optional
 from .base_provider import BaseLLMProvider
+from .pricing import PerplexityPricing
 from .exceptions import (
     LLMAuthenticationError,
     LLMRateLimitError,
@@ -32,9 +33,9 @@ class PerplexityProvider(BaseLLMProvider):
     
     def __init__(self, api_key: str, **kwargs):
         super().__init__(api_key, **kwargs)
-        self.model = kwargs.get('model', 'llama-3.1-sonar-large-128k-online')
-        self.max_tokens = kwargs.get('max_tokens', 500)
-        self.temperature = kwargs.get('temperature', 0.7)
+        self.model = kwargs.get('model', 'sonar')
+        self.max_tokens = kwargs.get('max_tokens', 400)
+        self.temperature = kwargs.get('temperature', 0.5)
         self.timeout = kwargs.get('timeout', 30.0)
     
     @property
@@ -131,11 +132,15 @@ class PerplexityProvider(BaseLLMProvider):
             prompt_tokens = usage.get('prompt_tokens', 0)
             completion_tokens = usage.get('completion_tokens', 0)
             
-            # Estimate cost (Perplexity pricing as of 2024)
-            # Approximate: $0.001 per 1K input tokens, $0.003 per 1K output tokens
-            input_cost = (prompt_tokens / 1000) * 0.001
-            output_cost = (completion_tokens / 1000) * 0.003
-            total_cost = input_cost + output_cost
+            # Calculate cost using centralized pricing configuration
+            try:
+                pricing = PerplexityPricing.get_pricing(model)
+                total_cost = pricing.calculate_cost(prompt_tokens, completion_tokens)
+            except Exception as e:
+                logger.warning(f"Error calculating cost for model '{model}': {e}")
+                # Fallback calculation using small model rates
+                total_cost = (prompt_tokens / 1_000_000) * 0.20 + \
+                           (completion_tokens / 1_000_000) * 0.20
             
             metadata = {
                 'model': model,
@@ -197,12 +202,13 @@ class PerplexityProvider(BaseLLMProvider):
         Returns:
             Estimated cost in USD
         """
-        if is_input:
-            # $0.001 per 1K input tokens
-            return (tokens_used / 1000) * 0.001
-        else:
-            # $0.003 per 1K output tokens
-            return (tokens_used / 1000) * 0.003
+        try:
+            pricing = PerplexityPricing.get_pricing(self.model)
+            return pricing.estimate_cost(tokens_used, is_input)
+        except Exception as e:
+            logger.warning(f"Error estimating cost for model '{self.model}': {e}")
+            # Fallback to base class generic estimate
+            return super().estimate_cost(tokens_used, is_input)
 
 
 

@@ -8,6 +8,7 @@ import logging
 from typing import Dict, Any
 from openai import OpenAI, APIError, AuthenticationError, RateLimitError, APITimeoutError
 from .base_provider import BaseLLMProvider
+from .pricing import OpenAIPricing
 from .exceptions import (
     LLMAuthenticationError,
     LLMRateLimitError,
@@ -26,9 +27,9 @@ class OpenAIProvider(BaseLLMProvider):
     
     def __init__(self, api_key: str, **kwargs):
         super().__init__(api_key, **kwargs)
-        self.model = kwargs.get('model', 'gpt-4-turbo-preview')
-        self.max_tokens = kwargs.get('max_tokens', 500)
-        self.temperature = kwargs.get('temperature', 0.7)
+        self.model = kwargs.get('model', 'gpt-5-nano')
+        self.max_tokens = kwargs.get('max_tokens', 400)
+        self.temperature = kwargs.get('temperature', 0.5)
         self.timeout = kwargs.get('timeout', 30.0)
         
         # Initialize OpenAI client
@@ -104,18 +105,15 @@ class OpenAIProvider(BaseLLMProvider):
             prompt_tokens = usage.prompt_tokens
             completion_tokens = usage.completion_tokens
             
-            # TODO: Update this for GPT 5/5.1 pricing
-            # Estimate cost based on model
-            # GPT-4 Turbo pricing: $0.01 input / $0.03 output per 1K tokens
-            # GPT-3.5 Turbo pricing: $0.0005 input / $0.0015 output per 1K tokens
-            if 'gpt-4' in model.lower():
-                input_cost = (prompt_tokens / 1000) * 0.01
-                output_cost = (completion_tokens / 1000) * 0.03
-            else:  # GPT-3.5 or other
-                input_cost = (prompt_tokens / 1000) * 0.0005
-                output_cost = (completion_tokens / 1000) * 0.0015
-            
-            total_cost = input_cost + output_cost
+            # Calculate cost using centralized pricing configuration
+            try:
+                pricing = OpenAIPricing.get_pricing(model)
+                total_cost = pricing.calculate_cost(prompt_tokens, completion_tokens)
+            except Exception as e:
+                logger.warning(f"Error calculating cost for model '{model}': {e}")
+                # Fallback calculation using GPT-3.5 rates
+                total_cost = (prompt_tokens / 1_000_000) * 0.50 + \
+                           (completion_tokens / 1_000_000) * 1.50
             
             metadata = {
                 'model': response.model,
@@ -175,16 +173,13 @@ class OpenAIProvider(BaseLLMProvider):
         Returns:
             Estimated cost in USD
         """
-        if 'gpt-4' in self.model.lower():
-            if is_input:
-                return (tokens_used / 1000) * 0.01
-            else:
-                return (tokens_used / 1000) * 0.03
-        else:  # GPT-3.5 or other
-            if is_input:
-                return (tokens_used / 1000) * 0.0005
-            else:
-                return (tokens_used / 1000) * 0.0015
+        try:
+            pricing = OpenAIPricing.get_pricing(self.model)
+            return pricing.estimate_cost(tokens_used, is_input)
+        except Exception as e:
+            logger.warning(f"Error estimating cost for model '{self.model}': {e}")
+            # Fallback to base class generic estimate
+            return super().estimate_cost(tokens_used, is_input)
 
 
 
