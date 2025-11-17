@@ -11,6 +11,7 @@ import logging
 from typing import Dict, Any, Optional
 from .base_provider import BaseLLMProvider
 from .pricing import PerplexityPricing
+from .json_parser import parse_llm_json, JSONParseError
 from .exceptions import (
     LLMAuthenticationError,
     LLMRateLimitError,
@@ -37,6 +38,7 @@ class PerplexityProvider(BaseLLMProvider):
         self.max_tokens = kwargs.get('max_tokens', 400)
         self.temperature = kwargs.get('temperature', 0.5)
         self.timeout = kwargs.get('timeout', 30.0)
+        self.enable_json_mode = kwargs.get('enable_json_mode', False)  # Perplexity may not support JSON mode
     
     @property
     def provider_name(self) -> str:
@@ -48,14 +50,16 @@ class PerplexityProvider(BaseLLMProvider):
         
         Args:
             prompt: The prompt text
-            **kwargs: Optional overrides for model, max_tokens, temperature
+            **kwargs: Optional overrides for model, max_tokens, temperature, parse_json
             
         Returns:
-            Dict with 'content' and 'metadata' keys
+            Dict with 'content' (parsed JSON dict if parse_json=True, else string) and 'metadata' keys
         """
         model = kwargs.get('model', self.model)
         max_tokens = kwargs.get('max_tokens', self.max_tokens)
         temperature = kwargs.get('temperature', self.temperature)
+        parse_json = kwargs.get('parse_json', True)  # Default to parsing JSON
+        enable_json_mode = kwargs.get('enable_json_mode', self.enable_json_mode)
         
         headers = {
             'Authorization': f'Bearer {self.api_key}',
@@ -67,7 +71,7 @@ class PerplexityProvider(BaseLLMProvider):
             'messages': [
                 {
                     'role': 'system',
-                    'content': 'You are a helpful assistant that provides accurate, concise information about products based on web search results.'
+                    'content': 'You are a JSON API that provides accurate, structured information about products based on web search results. Always respond with valid JSON only.'
                 },
                 {
                     'role': 'user',
@@ -82,7 +86,11 @@ class PerplexityProvider(BaseLLMProvider):
             'stream': False,
         }
         
-        logger.debug(f"Querying Perplexity with model={model}, max_tokens={max_tokens}")
+        # Try to enable JSON mode if supported and requested
+        if enable_json_mode and parse_json:
+            payload['response_format'] = {'type': 'json_object'}
+        
+        logger.debug(f"Querying Perplexity with model={model}, max_tokens={max_tokens}, json_mode={enable_json_mode}")
         
         try:
             with httpx.Client(timeout=self.timeout) as client:
@@ -124,7 +132,7 @@ class PerplexityProvider(BaseLLMProvider):
         
         # Parse response
         try:
-            content = data['choices'][0]['message']['content']
+            raw_content = data['choices'][0]['message']['content']
             usage = data.get('usage', {})
             citations = data.get('citations', [])
             
@@ -142,6 +150,20 @@ class PerplexityProvider(BaseLLMProvider):
                 total_cost = (prompt_tokens / 1_000_000) * 0.20 + \
                            (completion_tokens / 1_000_000) * 0.20
             
+            # Parse JSON if requested
+            content = raw_content
+            parse_success = True
+            parse_strategy = None
+            if parse_json:
+                try:
+                    content, parse_strategy = parse_llm_json(raw_content, strict=enable_json_mode)
+                    logger.debug(f"Successfully parsed JSON response using strategy: {parse_strategy}")
+                except JSONParseError as e:
+                    logger.warning(f"Failed to parse JSON from Perplexity response: {e}")
+                    parse_success = False
+                    # If parsing fails, raise error to trigger retry logic
+                    raise LLMInvalidResponseError(f"Failed to parse JSON response: {e}") from e
+            
             metadata = {
                 'model': model,
                 'tokens_used': total_tokens,
@@ -150,6 +172,9 @@ class PerplexityProvider(BaseLLMProvider):
                 'cost_estimate': total_cost,
                 'finish_reason': data['choices'][0].get('finish_reason', 'unknown'),
                 'citations': citations,
+                'json_mode_enabled': enable_json_mode and parse_json,
+                'parse_success': parse_success,
+                'parse_strategy': parse_strategy,
                 'provider_specific': {
                     'citations_count': len(citations),
                     'has_web_search': True,

@@ -11,7 +11,7 @@ class ProductAdmin(admin.ModelAdmin):
 
 @admin.register(LLMPrompt)
 class LLMPromptAdmin(admin.ModelAdmin):
-    list_display = ['name', 'query_type', 'is_active', 'created_at', 'updated_at']
+    list_display = ['name', 'query_type', 'schema_version', 'is_active', 'created_at', 'updated_at']
     list_filter = ['query_type', 'is_active', 'created_at']
     search_fields = ['name', 'description', 'prompt_template']
     readonly_fields = ['created_at', 'updated_at']
@@ -23,6 +23,11 @@ class LLMPromptAdmin(admin.ModelAdmin):
             'fields': ('description', 'prompt_template'),
             'description': 'Use variables: {product_name}, {brand}, {upc_code}, {additional_data}'
         }),
+        ('Schema Configuration', {
+            'fields': ('schema_version', 'response_schema'),
+            'classes': ('collapse',),
+            'description': 'Schema defines the expected JSON structure for responses'
+        }),
         ('Metadata', {
             'fields': ('created_at', 'updated_at'),
             'classes': ('collapse',)
@@ -32,10 +37,10 @@ class LLMPromptAdmin(admin.ModelAdmin):
 
 @admin.register(LLMQueryResult)
 class LLMQueryResultAdmin(admin.ModelAdmin):
-    list_display = ['product', 'prompt', 'provider', 'is_stale', 'created_at']
-    list_filter = ['provider', 'is_stale', 'created_at', 'prompt__query_type']
-    search_fields = ['product__name', 'product__upc_code', 'result']
-    readonly_fields = ['created_at', 'updated_at', 'query_input', 'result', 'metadata']
+    list_display = ['product', 'prompt', 'provider', 'parse_strategy', 'parse_attempts', 'is_stale', 'created_at']
+    list_filter = ['provider', 'parse_strategy', 'is_stale', 'created_at', 'prompt__query_type']
+    search_fields = ['product__name', 'product__upc_code']
+    readonly_fields = ['created_at', 'updated_at', 'query_input', 'result', 'metadata', 'parse_strategy', 'parse_attempts', 'schema_version']
     date_hierarchy = 'created_at'
     
     fieldsets = (
@@ -44,6 +49,9 @@ class LLMQueryResultAdmin(admin.ModelAdmin):
         }),
         ('Request & Response', {
             'fields': ('query_input', 'result', 'metadata')
+        }),
+        ('Parsing Details', {
+            'fields': ('parse_strategy', 'parse_attempts', 'schema_version')
         }),
         ('Status', {
             'fields': ('is_stale',)

@@ -15,6 +15,8 @@ from .base_provider import BaseLLMProvider
 from .openai_provider import OpenAIProvider
 from .perplexity_provider import PerplexityProvider
 from .exceptions import LLMProviderError
+from .schemas import get_schema, validate_response
+from .json_parser import create_error_response
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +50,8 @@ class LLMService:
         product: Product,
         query_type: str,
         provider: Optional[str] = None,
-        force_refresh: bool = False
+        force_refresh: bool = False,
+        max_retries: int = 2
     ) -> Dict[str, Any]:
         """
         Get LLM-generated insight for a product.
@@ -58,16 +61,17 @@ class LLMService:
             query_type: Type of query (e.g., 'review_summary')
             provider: LLM provider to use (defaults to self.default_provider_name)
             force_refresh: Skip cache and query LLM directly
+            max_retries: Maximum number of retry attempts for failed parsing (default: 2)
             
         Returns:
             Dictionary with:
-                - content: The LLM-generated text
+                - content: The structured JSON data from LLM
                 - cached: Whether result was from cache
                 - result_obj: The LLMQueryResult instance
             
         Raises:
             LLMPrompt.DoesNotExist: If no active prompt exists for query_type
-            LLMProviderError: If the LLM query fails
+            LLMProviderError: If the LLM query fails after retries
         """
         provider_name = provider or self.default_provider_name
         
@@ -83,7 +87,6 @@ class LLMService:
             )
         
         # Check cache unless force_refresh is True
-        cached = False
         if not force_refresh and self.config['enable_caching']:
             cached_result = self._check_cache(product, prompt_obj, provider_name)
             if cached_result:
@@ -97,7 +100,7 @@ class LLMService:
                     'result_obj': cached_result
                 }
         
-        # Cache miss or force refresh - query LLM
+        # Cache miss or force refresh - query LLM with retry logic
         logger.info(
             f"Cache miss for product={product.id}, query_type={query_type}, "
             f"provider={provider_name}. Querying LLM..."
@@ -106,18 +109,25 @@ class LLMService:
         # Render prompt with product data
         rendered_prompt = self._render_prompt(prompt_obj, product)
         
-        # Get provider and query
+        # Get provider and query with retry logic
         llm_provider = self._get_provider(provider_name)
-        response = llm_provider.query(rendered_prompt)
+        response, attempts = self._query_with_retry(
+            llm_provider=llm_provider,
+            prompt=rendered_prompt,
+            query_type=query_type,
+            max_retries=max_retries
+        )
         
-        # Store result in cache
+        # Validate and store result
         result_obj = self._store_result(
             product=product,
             prompt=prompt_obj,
             provider=provider_name,
             query_input=rendered_prompt,
             result=response['content'],
-            metadata=response['metadata']
+            metadata=response['metadata'],
+            schema_version=prompt_obj.schema_version,
+            parse_attempts=attempts
         )
         
         return {
@@ -216,14 +226,78 @@ class LLMService:
         except LLMQueryResult.DoesNotExist:
             return None
     
+    def _query_with_retry(
+        self,
+        llm_provider: BaseLLMProvider,
+        prompt: str,
+        query_type: str,
+        max_retries: int = 2
+    ) -> tuple[Dict[str, Any], int]:
+        """
+        Query LLM with retry logic for parsing failures.
+        
+        Args:
+            llm_provider: The LLM provider instance
+            prompt: The rendered prompt
+            query_type: Type of query for schema validation
+            max_retries: Maximum retry attempts
+            
+        Returns:
+            Tuple of (response dict, attempt count)
+            
+        Raises:
+            LLMProviderError: If all attempts fail
+        """
+        schema = get_schema(query_type)
+        last_error = None
+        
+        for attempt in range(1, max_retries + 1):
+            try:
+                # Add stronger JSON instructions on retries
+                if attempt > 1:
+                    retry_prompt = f"{prompt}\n\nIMPORTANT: Your previous response had parsing errors. You MUST respond with ONLY valid JSON. No markdown, no code blocks, no explanations. Start with {{ and end with }}."
+                    response = llm_provider.query(retry_prompt)
+                else:
+                    response = llm_provider.query(prompt)
+                
+                # Validate against schema if available
+                if schema and isinstance(response['content'], dict):
+                    validated_content = validate_response(response['content'], schema)
+                    response['content'] = validated_content
+                    logger.info(f"Successfully validated response against {query_type} schema")
+                
+                logger.info(f"LLM query succeeded on attempt {attempt}")
+                return response, attempt
+                
+            except (LLMProviderError, ValueError) as e:
+                last_error = e
+                logger.warning(f"Attempt {attempt}/{max_retries} failed: {e}")
+                
+                if attempt >= max_retries:
+                    # All retries exhausted - create error response
+                    logger.error(f"All {max_retries} attempts failed for query_type={query_type}")
+                    error_response = create_error_response(
+                        error_message=str(last_error),
+                        raw_response=None
+                    )
+                    return {
+                        'content': error_response,
+                        'metadata': {'error': str(last_error), 'attempts': attempt}
+                    }, attempt
+        
+        # Should never reach here, but just in case
+        raise LLMProviderError(f"Query failed after {max_retries} attempts: {last_error}")
+    
     def _store_result(
         self,
         product: Product,
         prompt: LLMPrompt,
         provider: str,
         query_input: str,
-        result: str,
-        metadata: Dict[str, Any]
+        result: Dict[str, Any],
+        metadata: Dict[str, Any],
+        schema_version: str = "1.0",
+        parse_attempts: int = 1
     ):
         """
         Store LLM result in cache.
@@ -233,9 +307,14 @@ class LLMService:
             prompt: LLMPrompt instance
             provider: Provider name
             query_input: The rendered prompt sent
-            result: The LLM response
+            result: The structured JSON response
             metadata: Response metadata (tokens, cost, etc.)
+            schema_version: Version of the schema used
+            parse_attempts: Number of attempts to parse successfully
         """
+        # Extract parse strategy from metadata
+        parse_strategy = metadata.get('parse_strategy')
+        
         # Update or create cache entry
         cached, created = LLMQueryResult.objects.update_or_create(
             product=product,
@@ -245,6 +324,9 @@ class LLMService:
                 'query_input': query_input,
                 'result': result,
                 'metadata': metadata,
+                'schema_version': schema_version,
+                'parse_attempts': parse_attempts,
+                'parse_strategy': parse_strategy,
                 'is_stale': False,
             }
         )
@@ -252,7 +334,7 @@ class LLMService:
         action = "Created" if created else "Updated"
         logger.info(
             f"{action} cached result for product={product.id}, "
-            f"prompt={prompt.name}, provider={provider}"
+            f"prompt={prompt.name}, provider={provider}, attempts={parse_attempts}"
         )
         
         return cached

@@ -26,6 +26,16 @@ class LLMPrompt(models.Model):
         max_length=50,
         help_text="Category of query (e.g., 'review_summary', 'safety_analysis')",
     )
+    response_schema = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="Expected JSON schema for the response (optional, for validation)"
+    )
+    schema_version = models.CharField(
+        max_length=20,
+        default="1.0",
+        help_text="Version of the response schema"
+    )
     is_active = models.BooleanField(default=True, help_text="Whether this prompt is currently in use")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -59,7 +69,22 @@ class LLMQueryResult(models.Model):
         help_text="LLM provider used (e.g., 'openai', 'perplexity')",
     )
     query_input = models.TextField(help_text="The actual rendered prompt sent to the LLM")
-    result = models.TextField(help_text="The LLM's response")
+    result = models.JSONField(help_text="The structured JSON response from the LLM")
+    schema_version = models.CharField(
+        max_length=20,
+        default="1.0",
+        help_text="Version of the schema used for this response"
+    )
+    parse_attempts = models.IntegerField(
+        default=1,
+        help_text="Number of attempts needed to successfully parse the response"
+    )
+    parse_strategy = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        help_text="JSON parsing strategy that succeeded (e.g., 'direct', 'markdown_json', 'markdown_block', 'extract_braces')"
+    )
     metadata = models.JSONField(
         default=dict,
         blank=True,

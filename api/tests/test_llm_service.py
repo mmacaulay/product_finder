@@ -30,17 +30,28 @@ class LLMServiceTestCase(TestCase):
             name='test_prompt',
             query_type='review_summary',
             prompt_template='Summarize reviews for {product_name} by {brand}',
+            schema_version='1.0',
             is_active=True
         )
         
-        # Mock LLM response
+        # Mock LLM response (now structured JSON)
         self.mock_llm_response = {
-            'content': 'This is a test review summary.',
+            'content': {
+                'sentiment': 'positive',
+                'sentiment_score': 0.85,
+                'summary': 'This is a test review summary.',
+                'pros': ['Great quality', 'Good value', 'Fast shipping'],
+                'cons': ['None found'],
+                'key_themes': ['quality', 'value'],
+                'confidence': 'high'
+            },
             'metadata': {
                 'model': 'test-model',
                 'tokens_used': 100,
                 'cost_estimate': 0.002,
                 'finish_reason': 'stop',
+                'parse_success': True,
+                'json_mode_enabled': True,
             }
         }
     
@@ -76,8 +87,10 @@ class LLMServiceTestCase(TestCase):
             provider='perplexity'
         )
         
-        # Verify result
-        self.assertEqual(result['content'], 'This is a test review summary.')
+        # Verify result structure
+        self.assertIsInstance(result['content'], dict)
+        self.assertEqual(result['content']['sentiment'], 'positive')
+        self.assertEqual(result['content']['summary'], 'This is a test review summary.')
         self.assertFalse(result['cached'])
         self.assertIsNotNone(result['result_obj'])
         
@@ -92,19 +105,29 @@ class LLMServiceTestCase(TestCase):
         ).first()
         
         self.assertIsNotNone(cached)
-        self.assertEqual(cached.result, 'This is a test review summary.')
+        self.assertIsInstance(cached.result, dict)
+        self.assertEqual(cached.result['sentiment'], 'positive')
         self.assertFalse(cached.is_stale)
     
     @patch('api.services.llm.llm_service.PerplexityProvider')
     def test_get_product_insight_cache_hit(self, mock_provider_class):
         """Test getting insight when result is cached (cache hit)"""
-        # Pre-populate cache
+        # Pre-populate cache with structured data
+        cached_result = {
+            'sentiment': 'positive',
+            'sentiment_score': 0.9,
+            'summary': 'Cached review summary',
+            'pros': ['Good'],
+            'cons': ['None'],
+            'key_themes': ['quality'],
+            'confidence': 'high'
+        }
         LLMQueryResult.objects.create(
             product=self.product,
             prompt=self.prompt,
             provider='perplexity',
             query_input='Test query',
-            result='Cached review summary',
+            result=cached_result,
             metadata={}
         )
         
@@ -121,7 +144,9 @@ class LLMServiceTestCase(TestCase):
         )
         
         # Verify cached result was returned
-        self.assertEqual(result['content'], 'Cached review summary')
+        self.assertIsInstance(result['content'], dict)
+        self.assertEqual(result['content']['summary'], 'Cached review summary')
+        self.assertEqual(result['content']['sentiment'], 'positive')
         self.assertTrue(result['cached'])
         self.assertIsNotNone(result['result_obj'])
         
@@ -147,13 +172,22 @@ class LLMServiceTestCase(TestCase):
             }
         }
         
-        # Pre-populate cache
+        # Pre-populate cache with structured data
+        cached_result = {
+            'sentiment': 'positive',
+            'sentiment_score': 0.8,
+            'summary': 'Cached review summary',
+            'pros': [],
+            'cons': [],
+            'key_themes': [],
+            'confidence': 'medium'
+        }
         LLMQueryResult.objects.create(
             product=self.product,
             prompt=self.prompt,
             provider='perplexity',
             query_input='Test query',
-            result='Cached review summary',
+            result=cached_result,
             metadata={}
         )
         
@@ -172,7 +206,9 @@ class LLMServiceTestCase(TestCase):
         )
         
         # Verify fresh result was returned (not cached one)
-        self.assertEqual(result['content'], 'This is a test review summary.')
+        self.assertIsInstance(result['content'], dict)
+        self.assertEqual(result['content']['summary'], 'This is a test review summary.')
+        self.assertEqual(result['content']['sentiment'], 'positive')
         self.assertFalse(result['cached'])
         self.assertIsNotNone(result['result_obj'])
         
@@ -181,13 +217,13 @@ class LLMServiceTestCase(TestCase):
     
     def test_invalidate_cache(self):
         """Test cache invalidation"""
-        # Create some cached results
+        # Create some cached results with structured data
         result1 = LLMQueryResult.objects.create(
             product=self.product,
             prompt=self.prompt,
             provider='perplexity',
             query_input='Test query',
-            result='Result 1',
+            result={'summary': 'Result 1'},
             metadata={}
         )
         
@@ -196,7 +232,7 @@ class LLMServiceTestCase(TestCase):
             prompt=self.prompt,
             provider='openai',
             query_input='Test query',
-            result='Result 2',
+            result={'summary': 'Result 2'},
             metadata={}
         )
         
@@ -235,13 +271,13 @@ class LLMServiceTestCase(TestCase):
     
     def test_get_cache_stats(self):
         """Test cache statistics"""
-        # Create some cached results
+        # Create some cached results with structured data
         LLMQueryResult.objects.create(
             product=self.product,
             prompt=self.prompt,
             provider='perplexity',
             query_input='Test',
-            result='Result 1',
+            result={'summary': 'Result 1'},
             is_stale=False,
             metadata={}
         )
@@ -251,7 +287,7 @@ class LLMServiceTestCase(TestCase):
             prompt=self.prompt,
             provider='openai',
             query_input='Test',
-            result='Result 2',
+            result={'summary': 'Result 2'},
             is_stale=True,
             metadata={}
         )
@@ -331,7 +367,7 @@ class LLMQueryResultModelTestCase(TestCase):
             prompt=self.prompt,
             provider='perplexity',
             query_input='Test',
-            result='Fresh result',
+            result={'summary': 'Fresh result'},
             metadata={}
         )
         
@@ -344,7 +380,7 @@ class LLMQueryResultModelTestCase(TestCase):
             prompt=self.prompt,
             provider='perplexity',
             query_input='Test',
-            result='Stale result',
+            result={'summary': 'Stale result'},
             is_stale=True,
             metadata={}
         )
@@ -358,7 +394,7 @@ class LLMQueryResultModelTestCase(TestCase):
             prompt=self.prompt,
             provider='perplexity',
             query_input='Test',
-            result='Result 1',
+            result={'summary': 'Result 1'},
             metadata={}
         )
         
@@ -369,7 +405,7 @@ class LLMQueryResultModelTestCase(TestCase):
                 prompt=self.prompt,
                 provider='perplexity',  # Same combination
                 query_input='Test 2',
-                result='Result 2',
+                result={'summary': 'Result 2'},
                 metadata={}
             )
 
@@ -453,10 +489,10 @@ class ProviderCostCalculationTestCase(TestCase):
         """Test that OpenAI query() returns accurate cost estimates"""
         from api.services.llm.openai_provider import OpenAIProvider
         
-        # Mock OpenAI response
+        # Mock OpenAI response with JSON content
         mock_response = Mock()
         mock_response.choices = [Mock(
-            message=Mock(content='Test response'),
+            message=Mock(content='{"sentiment": "positive", "summary": "Test response"}'),
             finish_reason='stop'
         )]
         mock_response.usage = Mock(
@@ -472,7 +508,11 @@ class ProviderCostCalculationTestCase(TestCase):
         mock_openai_class.return_value = mock_client
         
         provider = OpenAIProvider(api_key='test-key', model='gpt-5-nano')
-        result = provider.query('Test prompt')
+        result = provider.query('Test prompt', parse_json=True)
+        
+        # Verify content is parsed as dict
+        self.assertIsInstance(result['content'], dict)
+        self.assertEqual(result['content']['sentiment'], 'positive')
         
         # Verify cost is calculated correctly
         # 600 input * 0.05/1M + 400 output * 0.40/1M = 0.00003 + 0.00016 = 0.00019
@@ -488,12 +528,12 @@ class ProviderCostCalculationTestCase(TestCase):
         """Test that Perplexity query() returns accurate cost estimates"""
         from api.services.llm.perplexity_provider import PerplexityProvider
         
-        # Mock httpx response
+        # Mock httpx response with JSON content
         mock_response = Mock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
             'choices': [{
-                'message': {'content': 'Test response'},
+                'message': {'content': '{"sentiment": "positive", "summary": "Test response"}'},
                 'finish_reason': 'stop'
             }],
             'usage': {
@@ -514,7 +554,11 @@ class ProviderCostCalculationTestCase(TestCase):
             api_key='test-key',
             model='sonar'
         )
-        result = provider.query('Test prompt')
+        result = provider.query('Test prompt', parse_json=True)
+        
+        # Verify content is parsed as dict
+        self.assertIsInstance(result['content'], dict)
+        self.assertEqual(result['content']['sentiment'], 'positive')
         
         # Verify cost is calculated correctly
         # 600 input * 1.00/1M + 400 output * 1.00/1M = 0.0006 + 0.0004 = 0.001
@@ -544,10 +588,10 @@ class ProviderCostCalculationTestCase(TestCase):
         """Test that cost metadata is properly included in query response"""
         from api.services.llm.openai_provider import OpenAIProvider
         
-        # Mock OpenAI response
+        # Mock OpenAI response with JSON content
         mock_response = Mock()
         mock_response.choices = [Mock(
-            message=Mock(content='Test response'),
+            message=Mock(content='{"test": "response"}'),
             finish_reason='stop'
         )]
         mock_response.usage = Mock(
@@ -563,7 +607,10 @@ class ProviderCostCalculationTestCase(TestCase):
         mock_openai_class.return_value = mock_client
         
         provider = OpenAIProvider(api_key='test-key', model='gpt-5-nano')
-        result = provider.query('Test prompt')
+        result = provider.query('Test prompt', parse_json=True)
+        
+        # Verify content is parsed
+        self.assertIsInstance(result['content'], dict)
         
         # Verify metadata structure
         metadata = result['metadata']
@@ -572,6 +619,8 @@ class ProviderCostCalculationTestCase(TestCase):
         self.assertIn('prompt_tokens', metadata)
         self.assertIn('completion_tokens', metadata)
         self.assertIn('model', metadata)
+        self.assertIn('json_mode_enabled', metadata)
+        self.assertIn('parse_success', metadata)
         
         # Verify token counts
         self.assertEqual(metadata['tokens_used'], 500)
