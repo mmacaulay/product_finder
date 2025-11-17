@@ -35,6 +35,7 @@ class LLMPrompt(models.Model):
         indexes = [
             models.Index(fields=['query_type', 'is_active']),
         ]
+        verbose_name = "LLM Prompt"
 
     def __str__(self):
         return f"{self.name} ({self.query_type})"
@@ -80,6 +81,7 @@ class LLMQueryResult(models.Model):
             models.Index(fields=['is_stale']),
         ]
         unique_together = ['product', 'prompt', 'provider']
+        verbose_name = "LLM Query Result"
 
     def __str__(self):
         return f"{self.product.name} - {self.prompt.name} ({self.provider})"
