@@ -260,6 +260,30 @@ if [ "$BINDING_SUCCESS" = false ]; then
 fi
 
 echo ""
+echo "Creating GCS bucket for Terraform state..."
+STATE_BUCKET="${GCP_PROJECT_ID}-terraform-state"
+if gcloud storage buckets describe "gs://${STATE_BUCKET}" &> /dev/null; then
+    echo "State bucket already exists."
+else
+    gcloud storage buckets create "gs://${STATE_BUCKET}" \
+        --project="${GCP_PROJECT_ID}" \
+        --location="${GCP_REGION}" \
+        --uniform-bucket-level-access
+    
+    # Enable versioning for safety
+    gcloud storage buckets update "gs://${STATE_BUCKET}" --versioning
+    
+    echo "State bucket created."
+fi
+
+# Grant service account access to state bucket
+echo "Granting service account access to state bucket..."
+gcloud storage buckets add-iam-policy-binding "gs://${STATE_BUCKET}" \
+    --member="serviceAccount:${SA_EMAIL}" \
+    --role="roles/storage.objectAdmin" \
+    --quiet
+
+echo ""
 echo "========================================="
 echo "Setup Complete!"
 echo "========================================="
