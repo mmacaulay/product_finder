@@ -41,11 +41,20 @@ jobs:
         working-directory: ${{ env.TERRAFORM_DIR }}
       
       - name: Terraform Plan
-        run: terraform plan -input=false
+        run: |
+          terraform plan -input=false \
+            -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
+            -var="region=${{ secrets.GCP_REGION }}"
         working-directory: ${{ env.TERRAFORM_DIR }}
       
       - name: Terraform Apply
-        run: terraform apply -auto-approve -input=false
+        env:
+          TF_LOG: ERROR  # Suppress detailed output that might contain secrets
+        run: |
+          terraform apply -auto-approve -input=false \
+            -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
+            -var="region=${{ secrets.GCP_REGION }}" \
+            -compact-warnings
         working-directory: ${{ env.TERRAFORM_DIR }}
       
       - name: Deployment summary
@@ -53,4 +62,6 @@ jobs:
           echo "## Terraform Apply Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "✅ Infrastructure changes applied successfully" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ Secrets are managed in GCP Secret Manager" >> $GITHUB_STEP_SUMMARY
 
