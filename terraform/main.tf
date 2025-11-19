@@ -190,6 +190,8 @@ resource "google_cloud_run_v2_service" "app" {
     }
     
     containers {
+      # Image tag is managed by GitHub Actions deployment
+      # Terraform ignores changes to avoid drift on every deploy
       image = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.docker_repo.repository_id}/${var.app_name}:latest"
       
       ports {
@@ -350,6 +352,15 @@ resource "google_cloud_run_v2_service" "app" {
     }
     
     service_account = google_service_account.cloud_run_sa.email
+  }
+  
+  # Ignore changes to image tag and client info - managed by GitHub Actions
+  lifecycle {
+    ignore_changes = [
+      template[0].containers[0].image,
+      client,
+      client_version
+    ]
   }
   
   traffic {
