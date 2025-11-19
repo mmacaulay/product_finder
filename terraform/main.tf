@@ -12,11 +12,11 @@ terraform {
     }
   }
 
-  # Uncomment to use GCS backend for state storage
-  # backend "gcs" {
-  #   bucket = "your-terraform-state-bucket"
-  #   prefix = "terraform/state"
-  # }
+  # GCS backend for state storage - enables state sharing between local and CI/CD
+  backend "gcs" {
+    bucket = "product-finder-478702-terraform-state"
+    prefix = "terraform/state"
+  }
 }
 
 provider "google" {
