@@ -11,6 +11,7 @@ SAMPLE_DE_PRODUCT_RESPONSE = {
             'uom': '1 unit',
             'manufacturer_name': 'Test Manufacturer',
             'category': 'Test Category',
+            'image': 'https://example.com/product-image.jpg',
         }
     ]
 }
@@ -27,19 +28,22 @@ TEST_UPC_API_SUCCESS = '123456789012'
 TEST_UPC_API_EMPTY = '000000000000'
 
 
-def create_mock_de_product_response(description='Test Product', brand='Test Brand', upc='123456789012'):
+def create_mock_de_product_response(description='Test Product', brand='Test Brand', upc='123456789012', image=None):
     """Helper function to create a mock DE Product API response"""
+    product_data = {
+        'description': description,
+        'brand': brand,
+        'upc_code': upc,
+        'uom': '1 unit',
+        'manufacturer_name': 'Test Manufacturer',
+    }
+    
+    if image:
+        product_data['image'] = image
+    
     return {
         'entries': 1,
-        'products': [
-            {
-                'description': description,
-                'brand': brand,
-                'upc_code': upc,
-                'uom': '1 unit',
-                'manufacturer_name': 'Test Manufacturer',
-            }
-        ]
+        'products': [product_data]
     }
 
 

@@ -1,5 +1,5 @@
-import os
 import responses
+from django.test import override_settings
 from api.tests.base import MockedAPITestCase
 from api.tests.fixtures import (
     create_mock_de_product_response,
@@ -9,21 +9,27 @@ from api.tests.fixtures import (
 from api.services.de_product_api import DEProductAPI
 
 
+# Test configuration for DE Product API
+TEST_DE_PRODUCT_CONFIG = {
+    'base_url': 'https://api.example.com/product',
+    'app_key': 'test_app_key',
+    'auth_key': 'test_auth_key',
+    'field_names': 'description,brand,upc_code',
+    'language': 'en',
+}
+
+
+@override_settings(DE_PRODUCT_CONFIG=TEST_DE_PRODUCT_CONFIG)
 class DEProductAPITest(MockedAPITestCase):
     """Test the DEProductAPI service"""
     
     def setUp(self):
         super().setUp()
-        # Set up environment variables for API service
-        self.base_url = 'https://api.example.com/product'
-        self.app_key = 'test_app_key'
-        self.auth_key = 'test_auth_key'
-        self.field_names = 'description,brand,upc_code'
-        
-        os.environ['DE_PRODUCT_API_BASE_URL'] = self.base_url
-        os.environ['DE_PRODUCT_APP_KEY'] = self.app_key
-        os.environ['DE_PRODUCT_AUTH_KEY'] = self.auth_key
-        os.environ['DE_PRODUCT_FIELD_NAMES'] = self.field_names
+        # Store test config values for reference in tests
+        self.base_url = TEST_DE_PRODUCT_CONFIG['base_url']
+        self.app_key = TEST_DE_PRODUCT_CONFIG['app_key']
+        self.auth_key = TEST_DE_PRODUCT_CONFIG['auth_key']
+        self.field_names = TEST_DE_PRODUCT_CONFIG['field_names']
     
     def test_get_product_success(self):
         """Test successful product retrieval from API"""
@@ -118,53 +124,37 @@ class DEProductAPITest(MockedAPITestCase):
         token3 = api.make_auth_token('different_upc')
         self.assertNotEqual(token, token3)
     
-    def test_init_missing_environment_variables(self):
-        """Test that missing environment variables raise ValueError"""
-        # Save original values
-        original_base_url = os.environ.get('DE_PRODUCT_API_BASE_URL')
-        original_app_key = os.environ.get('DE_PRODUCT_APP_KEY')
-        original_auth_key = os.environ.get('DE_PRODUCT_AUTH_KEY')
-        original_field_names = os.environ.get('DE_PRODUCT_FIELD_NAMES')
-        
-        try:
-            # Test missing base_url
-            if 'DE_PRODUCT_API_BASE_URL' in os.environ:
-                del os.environ['DE_PRODUCT_API_BASE_URL']
+    def test_init_missing_configuration(self):
+        """Test that missing configuration values raise ValueError"""
+        # Test missing base_url
+        config = TEST_DE_PRODUCT_CONFIG.copy()
+        config['base_url'] = ''
+        with override_settings(DE_PRODUCT_CONFIG=config):
             with self.assertRaises(ValueError) as context:
                 DEProductAPI()
             self.assertIn('DE_PRODUCT_API_BASE_URL', str(context.exception))
-            
-            # Restore and test missing app_key
-            os.environ['DE_PRODUCT_API_BASE_URL'] = self.base_url
-            if 'DE_PRODUCT_APP_KEY' in os.environ:
-                del os.environ['DE_PRODUCT_APP_KEY']
+        
+        # Test missing app_key
+        config = TEST_DE_PRODUCT_CONFIG.copy()
+        config['app_key'] = ''
+        with override_settings(DE_PRODUCT_CONFIG=config):
             with self.assertRaises(ValueError) as context:
                 DEProductAPI()
             self.assertIn('DE_PRODUCT_APP_KEY', str(context.exception))
-            
-            # Restore and test missing auth_key
-            os.environ['DE_PRODUCT_APP_KEY'] = self.app_key
-            if 'DE_PRODUCT_AUTH_KEY' in os.environ:
-                del os.environ['DE_PRODUCT_AUTH_KEY']
+        
+        # Test missing auth_key
+        config = TEST_DE_PRODUCT_CONFIG.copy()
+        config['auth_key'] = ''
+        with override_settings(DE_PRODUCT_CONFIG=config):
             with self.assertRaises(ValueError) as context:
                 DEProductAPI()
             self.assertIn('DE_PRODUCT_AUTH_KEY', str(context.exception))
-            
-            # Restore and test missing field_names
-            os.environ['DE_PRODUCT_AUTH_KEY'] = self.auth_key
-            if 'DE_PRODUCT_FIELD_NAMES' in os.environ:
-                del os.environ['DE_PRODUCT_FIELD_NAMES']
+        
+        # Test missing field_names
+        config = TEST_DE_PRODUCT_CONFIG.copy()
+        config['field_names'] = ''
+        with override_settings(DE_PRODUCT_CONFIG=config):
             with self.assertRaises(ValueError) as context:
                 DEProductAPI()
             self.assertIn('DE_PRODUCT_FIELD_NAMES', str(context.exception))
-        finally:
-            # Restore original values
-            if original_base_url:
-                os.environ['DE_PRODUCT_API_BASE_URL'] = original_base_url
-            if original_app_key:
-                os.environ['DE_PRODUCT_APP_KEY'] = original_app_key
-            if original_auth_key:
-                os.environ['DE_PRODUCT_AUTH_KEY'] = original_auth_key
-            if original_field_names:
-                os.environ['DE_PRODUCT_FIELD_NAMES'] = original_field_names
 

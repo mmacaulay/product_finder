@@ -1,3 +1,4 @@
+from django.test import override_settings
 from api.tests.base import MockedAPITestCase
 from api.tests.fixtures import (
     create_mock_de_product_response,
@@ -9,19 +10,25 @@ from graphene.test import Client
 from api.graphql.schema import schema
 from api.models import Product
 import responses
-import os
 
+
+# Test configuration for DE Product API
+TEST_DE_PRODUCT_CONFIG = {
+    'base_url': 'https://api.example.com/product',
+    'app_key': 'test_app_key',
+    'auth_key': 'test_auth_key',
+    'field_names': 'description,brand,upc_code',
+    'language': 'en',
+}
+
+
+@override_settings(DE_PRODUCT_CONFIG=TEST_DE_PRODUCT_CONFIG)
 class GraphQLQueryTest(MockedAPITestCase):
     """Test GraphQL queries"""
     
     def setUp(self):
         """Create test products"""
         super().setUp()
-        # Set up environment variables for API service
-        os.environ['DE_PRODUCT_API_BASE_URL'] = 'https://api.example.com/product'
-        os.environ['DE_PRODUCT_APP_KEY'] = 'test_app_key'
-        os.environ['DE_PRODUCT_AUTH_KEY'] = 'test_auth_key'
-        os.environ['DE_PRODUCT_FIELD_NAMES'] = 'description,brand,upc_code'
         
         self.product1 = Product.objects.create(
             upc_code='111111111111',
@@ -182,3 +189,42 @@ class GraphQLQueryTest(MockedAPITestCase):
         result = self.client.execute(query)
         self.assertIsNone(result.get('errors'))
         self.assertIsNone(result['data']['productByUpc'])
+    
+    def test_query_product_with_image_url(self):
+        """Test querying a product by UPC that includes image URL from API"""
+        # Mock API response with image
+        test_image_url = 'https://example.com/test-product-image.jpg'
+        mock_response = create_mock_de_product_response(
+            description='Product with Image',
+            brand='Image Brand',
+            upc='333333333333',
+            image=test_image_url
+        )
+        responses.add(
+            responses.GET,
+            'https://api.example.com/product',
+            json=mock_response,
+            status=200
+        )
+        
+        query = '''
+            query {
+                productByUpc(upc: "333333333333") {
+                    upcCode
+                    name
+                    brand
+                    imageUrl
+                }
+            }
+        '''
+        result = self.client.execute(query)
+        self.assertIsNone(result.get('errors'))
+        product = result['data']['productByUpc']
+        self.assertEqual(product['upcCode'], '333333333333')
+        self.assertEqual(product['name'], 'Product with Image')
+        self.assertEqual(product['brand'], 'Image Brand')
+        self.assertEqual(product['imageUrl'], test_image_url)
+        
+        # Verify image URL was saved to database
+        saved_product = Product.objects.get(upc_code='333333333333')
+        self.assertEqual(saved_product.image_url, test_image_url)

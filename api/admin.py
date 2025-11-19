@@ -4,9 +4,21 @@ from .models import Product, LLMPrompt, LLMQueryResult
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ['upc_code', 'name', 'brand', 'created_at']
+    list_display = ['upc_code', 'name', 'brand', 'has_image', 'created_at']
     search_fields = ['upc_code', 'name', 'brand']
     list_filter = ['created_at']
+    readonly_fields = ['image_preview']
+    
+    @admin.display(boolean=True, description='Has Image')
+    def has_image(self, obj):
+        return bool(obj.image_url)
+    
+    @admin.display(description='Image Preview')
+    def image_preview(self, obj):
+        if obj.image_url:
+            from django.utils.html import format_html
+            return format_html('<img src="{}" style="max-width: 200px; max-height: 200px;" />', obj.image_url)
+        return 'No image available'
 
 
 @admin.register(LLMPrompt)

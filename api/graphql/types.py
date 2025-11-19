@@ -127,6 +127,7 @@ class ProductType(DjangoObjectType):
             'upc_code',
             'name',
             'brand',
+            'image_url',
             'created_at',
             'updated_at',
         )

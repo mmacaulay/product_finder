@@ -23,6 +23,7 @@ class Query(graphene.ObjectType):
                     upc_code=upc,
                     name=de_product['description'],
                     brand=de_product['brand'],
+                    image_url=de_product.get('image'),
                     de_product_data=de_product,
                 )
                 product.save()
