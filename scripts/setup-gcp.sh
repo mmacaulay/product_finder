@@ -109,6 +109,7 @@ ROLES=(
     "roles/secretmanager.admin"
     "roles/artifactregistry.admin"
     "roles/compute.networkAdmin"
+    "roles/vpcaccess.admin"
     "roles/iam.serviceAccountUser"
     "roles/iam.serviceAccountAdmin"
     "roles/resourcemanager.projectIamAdmin"
