@@ -206,6 +206,63 @@ uv run python manage.py test api.tests.test_llm_service
 uv run python manage.py test --keepdb
 ```
 
+## Deployment
+
+The application is designed to be deployed to Google Cloud Platform using Cloud Run and Cloud SQL.
+
+### Quick Deploy to GCP
+
+For detailed deployment instructions, see **[docs/deployment/gcp-setup.md](./docs/deployment/gcp-setup.md)**.
+
+**Prerequisites:**
+- GCP account with billing enabled
+- gcloud CLI and Terraform installed
+- GitHub repository with admin access
+
+**Quick Start:**
+
+1. **Initial Setup**
+```bash
+# Configure GCP project and GitHub Actions
+export GCP_PROJECT_ID="your-project-id"
+export GITHUB_REPO="username/product_finder"
+./scripts/setup-gcp.sh
+```
+
+2. **Create Secrets**
+```bash
+# Populate GCP Secret Manager with API keys
+./scripts/create-secrets.sh
+```
+
+3. **Deploy Infrastructure**
+```bash
+cd terraform
+cp terraform.tfvars.example terraform.tfvars
+# Edit terraform.tfvars with your project details
+terraform init
+terraform apply
+```
+
+4. **Deploy Application**
+```bash
+# Push to main branch to trigger automatic deployment
+git push origin main
+```
+
+**Architecture:**
+- **Cloud Run**: Serverless Django application (scales to zero)
+- **Cloud SQL**: Managed PostgreSQL database
+- **Secret Manager**: Secure credential storage
+- **Artifact Registry**: Docker image repository
+- **GitHub Actions**: Automated CI/CD pipeline
+
+**Estimated Costs:**
+- Staging: ~$10-20/month (minimal usage)
+- Production: Variable based on traffic
+
+See the [complete deployment guide](./docs/deployment/gcp-setup.md) for detailed instructions, troubleshooting, and production configuration.
+
 ## Development
 
 ### Project Structure

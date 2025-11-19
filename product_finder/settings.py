@@ -48,6 +48,24 @@ else:
     default_hosts = ['localhost', '127.0.0.1']
     ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=default_hosts)
 
+# CSRF Configuration for Cloud Run
+# Trust X-Forwarded-Proto header from GCP load balancer
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# CSRF trusted origins for Cloud Run (will be set via environment in production)
+csrf_origins = env.list('CSRF_TRUSTED_ORIGINS', default=[])
+if csrf_origins:
+    CSRF_TRUSTED_ORIGINS = csrf_origins
+
+# Security settings for production
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
 
 # Application definition
 
@@ -64,6 +82,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # WhiteNoise for static files
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -140,6 +159,17 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# WhiteNoise configuration for efficient static file serving
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -230,4 +260,14 @@ LLM_CONFIG = {
             'temperature': env.float('PERPLEXITY_TEMPERATURE', default=0.7),
         }
     }
+}
+
+
+# DE Product API Configuration
+DE_PRODUCT_CONFIG = {
+    'base_url': env('DE_PRODUCT_API_BASE_URL', default=''),
+    'app_key': env('DE_PRODUCT_APP_KEY', default=''),
+    'auth_key': env('DE_PRODUCT_AUTH_KEY', default=''),
+    'field_names': env('DE_PRODUCT_FIELD_NAMES', default=''),
+    'language': env('DE_PRODUCT_LANGUAGE', default='en'),
 }

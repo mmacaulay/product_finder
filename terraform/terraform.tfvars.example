@@ -1,0 +1,27 @@
+# GCP Project Configuration
+project_id = "your-gcp-project-id"
+region     = "us-central1"
+
+# Application Configuration
+app_name    = "product-finder"
+environment = "staging"
+
+# Database Configuration
+database_version   = "POSTGRES_15"
+database_tier      = "db-f1-micro"  # Use db-custom-2-4096 or higher for production
+database_disk_size = 10              # Increase for production (e.g., 50)
+database_name      = "product_finder"
+database_user      = "product_finder_user"
+
+# Cloud Run Configuration
+cloud_run_cpu                      = "1"
+cloud_run_memory                   = "512Mi"  # Increase for production (e.g., "2Gi")
+cloud_run_max_instances            = 10        # Increase for production (e.g., 100)
+cloud_run_allow_unauthenticated    = true
+
+# Application Settings
+log_level = "INFO"  # Use "DEBUG" for development, "INFO" or "WARNING" for production
+
+# Domain Configuration (optional)
+# domain_name = "staging.yourapp.com"
+
