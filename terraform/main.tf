@@ -354,10 +354,16 @@ resource "google_cloud_run_v2_service" "app" {
     service_account = google_service_account.cloud_run_sa.email
   }
   
-  # Ignore changes to image tag and client info - managed by GitHub Actions
+  # Ignore changes managed outside Terraform
+  # - Image tag: managed by GitHub Actions
+  # - Annotations: Cloud Run adds additional annotations automatically
+  # - Volumes: Cloud Run may add internal volume mounts
   lifecycle {
     ignore_changes = [
       template[0].containers[0].image,
+      template[0].containers[0].volume_mounts,
+      template[0].volumes,
+      template[0].annotations,
       client,
       client_version
     ]
