@@ -3,19 +3,12 @@ set -e
 
 echo "Starting Django application..."
 
-# Wait for database to be ready (with timeout)
-echo "Waiting for database..."
-timeout=30
-counter=0
-until pg_isready -h "${DB_HOST:-localhost}" -p "${DB_PORT:-5432}" -U "${DB_USER:-postgres}" 2>/dev/null || [ $counter -eq $timeout ]; do
-  counter=$((counter+1))
-  echo "Database is unavailable - waiting... ($counter/$timeout)"
-  sleep 1
-done
+# For Cloud SQL, we use Unix socket connections, so skip pg_isready check
+# The DATABASE_URL is already configured for Unix socket via Cloud SQL proxy
+# Cloud Run automatically sets up the /cloudsql directory with the socket
 
-if [ $counter -eq $timeout ]; then
-  echo "Warning: Database connection timeout. Proceeding anyway..."
-fi
+echo "Database connection configured via DATABASE_URL"
+echo "Cloud SQL connection will use Unix socket in /cloudsql/"
 
 # Run database migrations
 echo "Running database migrations..."

@@ -184,6 +184,11 @@ resource "google_cloud_run_v2_service" "app" {
   location = var.region
   
   template {
+    # Annotations for Cloud SQL connection
+    annotations = {
+      "run.googleapis.com/cloudsql-instances" = google_sql_database_instance.postgres.connection_name
+    }
+    
     containers {
       image = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.docker_repo.repository_id}/${var.app_name}:latest"
       
