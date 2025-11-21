@@ -419,12 +419,13 @@ resource "google_cloud_run_v2_service_iam_policy" "noauth" {
 resource "google_cloud_run_v2_job" "default" {
   name = "createsuperuser-job"
   location = var.region
-  #deletion_protection = var.environment == "production" ? true : false
+
   template {
     task_count     = 1
     parallelism    = 1
 
     template {
+      service_account = google_service_account.cloud_run_sa.email
       containers {
         image = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.docker_repo.repository_id}/${var.app_name}:latest"
         command = ["python"]
