@@ -445,6 +445,16 @@ resource "google_cloud_run_v2_job" "default" {
           name  = "ENVIRONMENT"
           value = var.environment
         }
+
+        env {
+          name = "SECRET_KEY"
+          value_source {
+            secret_key_ref {
+              secret  = google_secret_manager_secret.django_secret_key.secret_id
+              version = "latest"
+            }
+          }
+        }
         
         # Database connection via Unix socket
         env {
