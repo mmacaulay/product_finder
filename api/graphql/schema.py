@@ -9,6 +9,10 @@ class Query(graphene.ObjectType):
     product_by_id = graphene.Field(ProductType, id=graphene.Int(required=True))
 
     def resolve_all_products(self, info):
+        # Access authenticated user via info.context.user
+        # user = info.context.user
+        # if not user.is_authenticated:
+        #     raise Exception('Authentication required')
         return Product.objects.all()
 
     def resolve_product_by_upc(self, info, upc):

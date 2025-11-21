@@ -6,6 +6,7 @@ A Django-based GraphQL API for product information lookup with AI-powered insigh
 
 - **Product Lookup**: Search products by UPC code
 - **GraphQL API**: Modern, flexible API with GraphQL
+- **JWT Authentication**: Secure user authentication for mobile apps
 - **AI-Powered Insights**: Get review summaries, safety analysis, and more using LLMs
   - Perplexity AI (with real-time web search)
   - OpenAI ChatGPT
@@ -56,6 +57,10 @@ DEBUG=True
 # Database
 DATABASE_URL=postgresql://postgres:postgres@localhost:6000/product_finder_dev
 
+# JWT Authentication (optional - defaults shown)
+JWT_ACCESS_TOKEN_LIFETIME=60  # minutes
+JWT_REFRESH_TOKEN_LIFETIME=7  # days
+
 # DE Product API
 DE_PRODUCT_API_BASE_URL=https://api.example.com
 DE_PRODUCT_APP_KEY=your_app_key
@@ -94,9 +99,39 @@ uv run python manage.py runserver
 
 ## Usage
 
+### Authentication
+
+The API requires JWT authentication for all GraphQL requests. See the **[Authentication Guide](./docs/user/authentication.md)** for complete details.
+
+**Quick Start:**
+
+1. **Register a user:**
+```bash
+curl -X POST http://localhost:8000/api/auth/register/ \
+  -H "Content-Type: application/json" \
+  -d '{"email": "user@example.com", "password": "SecurePass123!"}'
+```
+
+2. **Login to get tokens:**
+```bash
+curl -X POST http://localhost:8000/api/auth/login/ \
+  -H "Content-Type: application/json" \
+  -d '{"email": "user@example.com", "password": "SecurePass123!"}'
+```
+
+3. **Use access token in GraphQL requests:**
+```bash
+curl -X POST http://localhost:8000/graphql/ \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <your_access_token>" \
+  -d '{"query": "{ allProducts { id name } }"}'
+```
+
 ### GraphQL Endpoint
 
 Visit: http://localhost:8000/graphql/
+
+**Note:** In development mode (DEBUG=True), the GraphiQL interface is accessible without authentication for testing. In production, all requests require authentication.
 
 ### Example Queries
 
@@ -179,6 +214,7 @@ With $20/month budget and caching enabled:
 
 For complete documentation, see the **[docs/](./docs/)** directory:
 
+- **[Authentication Guide](./docs/user/authentication.md)** - JWT authentication for mobile apps
 - **[LLM Usage Guide](./docs/user/llm-usage.md)** - Complete user guide with setup, examples, and troubleshooting
 - **[Architecture](./docs/development/architecture.md)** - System architecture and design patterns
 - **[Implementation Guide](./docs/development/implementation.md)** - Technical specification
@@ -349,7 +385,10 @@ def _get_provider(self, provider_name):
 For comprehensive documentation, visit the **[docs/](./docs/)** directory:
 
 - **User Guides**: [docs/user/](./docs/user/) - How to use the API and features
+  - [Authentication Guide](./docs/user/authentication.md) - JWT authentication for mobile apps
+  - [LLM Usage Guide](./docs/user/llm-usage.md) - AI-powered product insights
 - **Development**: [docs/development/](./docs/development/) - Architecture and technical details
+- **Deployment**: [docs/deployment/](./docs/deployment/) - GCP deployment guides
 - **Project Records**: [docs/project/](./docs/project/) - Implementation history and checklists
 
 ## License
