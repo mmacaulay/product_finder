@@ -431,6 +431,14 @@ resource "google_cloud_run_v2_job" "default" {
         egress    = "PRIVATE_RANGES_ONLY"
       }
 
+      # "product-finder-478702:northamerica-northeast2:product-finder-staging-2ae809a8"
+      volumes {
+        name = "cloudsql"
+        cloud_sql_instance {
+          instances = [google_sql_database_instance.postgres.connection_name]
+        }
+      }
+
       containers {
         image = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.docker_repo.repository_id}/${var.app_name}:latest"
         command = ["python"]
@@ -466,7 +474,7 @@ resource "google_cloud_run_v2_job" "default" {
           name = "DATABASE_URL"
           value_source {
             secret_key_ref {
-              secret = "google_secret_manager_secret.product-finder-${var.environment}-database-url.secret_id"
+              secret = google_secret_manager_secret.database_url.secret_id
               version = "latest"
             }
           }
@@ -477,4 +485,7 @@ resource "google_cloud_run_v2_job" "default" {
       timeout        = "600s"
     }
   }
+  depends_on = [
+    google_secret_manager_secret_iam_member.database_url
+  ]
 }
