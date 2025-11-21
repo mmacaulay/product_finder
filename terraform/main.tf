@@ -430,7 +430,7 @@ resource "google_cloud_run_v2_job" "default" {
         connector = google_vpc_access_connector.connector.id
         egress    = "PRIVATE_RANGES_ONLY"
       }
-      
+
       containers {
         image = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.docker_repo.repository_id}/${var.app_name}:latest"
         command = ["python"]
@@ -466,7 +466,7 @@ resource "google_cloud_run_v2_job" "default" {
           name = "DATABASE_URL"
           value_source {
             secret_key_ref {
-              secret  = google_secret_manager_secret.database_url.secret_id
+              secret = "google_secret_manager_secret.product-finder-${var.environment}-database-url.secret_id"
               version = "latest"
             }
           }
