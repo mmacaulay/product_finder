@@ -419,53 +419,46 @@ resource "google_cloud_run_v2_service_iam_policy" "noauth" {
 resource "google_cloud_run_v2_job" "default" {
   name = "createsuperuser-job"
   location = var.region
-  deletion_protection = var.environment == "production" ? true : false
+  #deletion_protection = var.environment == "production" ? true : false
   template {
+    task_count     = 1
+    parallelism    = 1
+
     template {
-      # Annotations for Cloud SQL connection
-      annotations = {
-        "run.googleapis.com/cloudsql-instances" = google_sql_database_instance.postgres.connection_name
-      }
-      
       containers {
-        # Image tag is managed by GitHub Actions deployment
-        # Terraform ignores changes to avoid drift on every deploy
         image = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.docker_repo.repository_id}/${var.app_name}:latest"
         command = ["python"]
         args    = ["manage.py", "createsuperuser", "--noinput"]
-      }
 
-      # Run one instance
-      max_retries    = 0
-      task_count     = 1
-      parallelism    = 1
-      timeout        = "600s"
-
-      env {
-        name  = "DEBUG"
-        value = "true"
-      }
-      
-      env {
-        name  = "LOG_LEVEL"
-        value = var.log_level
-      }
-      
-      env {
-        name  = "ENVIRONMENT"
-        value = var.environment
-      }
-      
-      # Database connection via Unix socket
-      env {
-        name = "DATABASE_URL"
-        value_source {
-          secret_key_ref {
-            secret  = google_secret_manager_secret.database_url.secret_id
-            version = "latest"
+        env {
+          name  = "DEBUG"
+          value = "true"
+        }
+        
+        env {
+          name  = "LOG_LEVEL"
+          value = var.log_level
+        }
+        
+        env {
+          name  = "ENVIRONMENT"
+          value = var.environment
+        }
+        
+        # Database connection via Unix socket
+        env {
+          name = "DATABASE_URL"
+          value_source {
+            secret_key_ref {
+              secret  = google_secret_manager_secret.database_url.secret_id
+              version = "latest"
+            }
           }
         }
       }
+
+      max_retries    = 0
+      timeout        = "600s"
     }
   }
 }
