@@ -116,7 +116,7 @@ resource "google_sql_database_instance" "postgres" {
     ip_configuration {
       ipv4_enabled    = false
       private_network = google_compute_network.vpc.id
-      require_ssl     = true
+      ssl_mode        = "ENCRYPTED_ONLY"
     }
     
     maintenance_window {
@@ -416,76 +416,44 @@ resource "google_cloud_run_v2_service_iam_policy" "noauth" {
   policy_data = data.google_iam_policy.noauth.policy_data
 }
 
-resource "google_cloud_run_v2_job" "default" {
-  name = "createsuperuser-job"
-  location = var.region
+module "createsuperuser" {
+  source     = "./modules/cloud_run_task_runner"
+  service_account = google_service_account.cloud_run_sa.email
+  job_name   = "django-createsuperuser"
+  image      = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.docker_repo.repository_id}/${var.app_name}:latest"
 
-  template {
-    task_count     = 1
-    parallelism    = 1
+  command = ["python"]
+  args    = ["manage.py", "createsuperuser", "--noinput"]
 
-    template {
-      service_account = google_service_account.cloud_run_sa.email
-      vpc_access {
-        connector = google_vpc_access_connector.connector.id
-        egress    = "PRIVATE_RANGES_ONLY"
-      }
-
-      # "product-finder-478702:northamerica-northeast2:product-finder-staging-2ae809a8"
-      volumes {
-        name = "cloudsql"
-        cloud_sql_instance {
-          instances = [google_sql_database_instance.postgres.connection_name]
-        }
-      }
-
-      containers {
-        image = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.docker_repo.repository_id}/${var.app_name}:latest"
-        command = ["python"]
-        args    = ["manage.py", "createsuperuser", "--noinput"]
-
-        env {
-          name  = "DEBUG"
-          value = "true"
-        }
-        
-        env {
-          name  = "LOG_LEVEL"
-          value = var.log_level
-        }
-        
-        env {
-          name  = "ENVIRONMENT"
-          value = var.environment
-        }
-
-        env {
-          name = "SECRET_KEY"
-          value_source {
-            secret_key_ref {
-              secret  = google_secret_manager_secret.django_secret_key.secret_id
-              version = "latest"
-            }
-          }
-        }
-        
-        # Database connection via Unix socket
-        env {
-          name = "DATABASE_URL"
-          value_source {
-            secret_key_ref {
-              secret = google_secret_manager_secret.database_url.secret_id
-              version = "latest"
-            }
-          }
-        }
-      }
-
-      max_retries    = 0
-      timeout        = "600s"
+  secret_env = {
+    DATABASE_URL = {
+      secret = google_secret_manager_secret.database_url.secret_id
+      version = "latest"
+    }
+    SECRET_KEY = {
+      secret  = google_secret_manager_secret.django_secret_key.secret_id
+      version = "latest"
+    }
+    DJANGO_SUPERUSER_USERNAME = {
+      secret  = google_secret_manager_secret.django_superuser_username.secret_id
+      version = "latest"
+    }
+    DJANGO_SUPERUSER_EMAIL = {
+      secret  = google_secret_manager_secret.django_superuser_email.secret_id
+      version = "latest"
+    }
+    DJANGO_SUPERUSER_PASSWORD = {
+      secret  = google_secret_manager_secret.django_superuser_password.secret_id
+      version = "latest"
     }
   }
-  depends_on = [
-    google_secret_manager_secret_iam_member.database_url
-  ]
+
+  env_vars = {
+    # DJANGO_SUPERUSER_USERNAME = "admin"
+    # DJANGO_SUPERUSER_EMAIL    = "admin@example.com"
+  }
+
+  cloudsql_connection   = google_sql_database_instance.postgres.connection_name
+  cloudsql_enable_volume = true
+  vpc_connector          = google_vpc_access_connector.connector.id
 }

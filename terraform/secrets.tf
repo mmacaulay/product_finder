@@ -2,7 +2,6 @@
 # These secrets will be created but need to be populated with actual values
 # Use the create-secrets.sh script to populate them
 
-# Django Secret Key
 resource "google_secret_manager_secret" "django_secret_key" {
   secret_id = "${var.app_name}-${var.environment}-django-secret-key"
   
@@ -13,8 +12,35 @@ resource "google_secret_manager_secret" "django_secret_key" {
   depends_on = [google_project_service.required_apis]
 }
 
-# Note: Secret version for django_secret_key is managed outside Terraform
-# The secret value was created by create-secrets.sh and should not be managed by Terraform
+resource "google_secret_manager_secret" "django_superuser_username" {
+  secret_id = "${var.app_name}-${var.environment}-django-superuser-username"
+  
+  replication {
+    auto {}
+  }
+  
+  depends_on = [google_project_service.required_apis]
+}
+
+resource "google_secret_manager_secret" "django_superuser_email" {
+  secret_id = "${var.app_name}-${var.environment}-django-superuser-email"
+  
+  replication {
+    auto {}
+  }
+  
+  depends_on = [google_project_service.required_apis]
+}
+
+resource "google_secret_manager_secret" "django_superuser_password" {
+  secret_id = "${var.app_name}-${var.environment}-django-superuser-password"
+  
+  replication {
+    auto {}
+  }
+  
+  depends_on = [google_project_service.required_apis]
+}
 
 resource "random_id" "secret_placeholder" {
   byte_length = 16
@@ -169,8 +195,29 @@ resource "google_secret_manager_secret_iam_member" "database_url" {
   member    = "serviceAccount:${google_service_account.cloud_run_sa.email}"
 }
 
-# Note: IAM binding for django_secret_key managed outside Terraform
-# The secret was created before Terraform, so IAM is also managed externally
+resource "google_secret_manager_secret_iam_member" "django_secret_key" {
+  secret_id = google_secret_manager_secret.django_secret_key.secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.cloud_run_sa.email}"
+}
+
+resource "google_secret_manager_secret_iam_member" "django_superuser_username" {
+  secret_id = google_secret_manager_secret.django_superuser_username.secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.cloud_run_sa.email}"
+}
+
+resource "google_secret_manager_secret_iam_member" "django_superuser_email" {
+  secret_id = google_secret_manager_secret.django_superuser_email.secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.cloud_run_sa.email}"
+}
+
+resource "google_secret_manager_secret_iam_member" "django_superuser_password" {
+  secret_id = google_secret_manager_secret.django_superuser_password.secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.cloud_run_sa.email}"
+}
 
 resource "google_secret_manager_secret_iam_member" "de_product_api_base_url" {
   secret_id = google_secret_manager_secret.de_product_api_base_url.secret_id
