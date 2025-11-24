@@ -448,10 +448,34 @@ module "createsuperuser" {
     }
   }
 
-  env_vars = {
-    # DJANGO_SUPERUSER_USERNAME = "admin"
-    # DJANGO_SUPERUSER_EMAIL    = "admin@example.com"
+  env_vars = {}
+
+  cloudsql_connection   = google_sql_database_instance.postgres.connection_name
+  cloudsql_enable_volume = true
+  vpc_connector          = google_vpc_access_connector.connector.id
+}
+
+module "seed_llm_prompts" {
+  source     = "./modules/cloud_run_task_runner"
+  service_account = google_service_account.cloud_run_sa.email
+  job_name   = "seed-llm-prompts"
+  image      = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.docker_repo.repository_id}/${var.app_name}:latest"
+
+  command = ["python"]
+  args    = ["manage.py", "seed_llm_prompts"]
+
+  secret_env = {
+    DATABASE_URL = {
+      secret = google_secret_manager_secret.database_url.secret_id
+      version = "latest"
+    }
+    SECRET_KEY = {
+      secret  = google_secret_manager_secret.django_secret_key.secret_id
+      version = "latest"
+    }
   }
+
+  env_vars = {}
 
   cloudsql_connection   = google_sql_database_instance.postgres.connection_name
   cloudsql_enable_volume = true
