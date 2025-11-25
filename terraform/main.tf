@@ -418,6 +418,7 @@ resource "google_cloud_run_v2_service_iam_policy" "noauth" {
 
 module "createsuperuser" {
   source     = "./modules/cloud_run_task_runner"
+  location   = var.region
   service_account = google_service_account.cloud_run_sa.email
   job_name   = "django-createsuperuser"
   image      = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.docker_repo.repository_id}/${var.app_name}:latest"
@@ -457,6 +458,7 @@ module "createsuperuser" {
 
 module "seed_llm_prompts" {
   source     = "./modules/cloud_run_task_runner"
+  location   = var.region
   service_account = google_service_account.cloud_run_sa.email
   job_name   = "seed-llm-prompts"
   image      = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.docker_repo.repository_id}/${var.app_name}:latest"

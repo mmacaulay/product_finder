@@ -24,7 +24,7 @@ For complete documentation, see **[docs/deployment/gcp-setup.md](./docs/deployme
 ```bash
 # Set your configuration
 export GCP_PROJECT_ID="your-project-id"
-export GCP_REGION="us-central1"
+export GCP_REGION="us-east1"
 export GITHUB_REPO="your-username/product_finder"
 
 # Run setup script
@@ -45,7 +45,7 @@ Add these secrets to your GitHub repository (Settings → Secrets and variables 
 | Secret Name | Value |
 |-------------|-------|
 | `GCP_PROJECT_ID` | Your GCP project ID |
-| `GCP_REGION` | e.g., `us-central1` |
+| `GCP_REGION` | e.g., `us-east1` |
 | `GCP_WORKLOAD_IDENTITY_PROVIDER` | From setup script output |
 | `GCP_SERVICE_ACCOUNT` | From setup script output |
 
@@ -105,14 +105,14 @@ curl https://your-app-url.run.app/graphql
 ### View Logs
 
 ```bash
-gcloud run services logs read product-finder-staging --region=us-central1 --limit=50
+gcloud run services logs read product-finder-staging --region=us-east1 --limit=50
 ```
 
 ### Update Environment Variables
 
 ```bash
 gcloud run services update product-finder-staging \
-  --region=us-central1 \
+  --region=us-east1 \
   --update-env-vars="KEY=VALUE"
 ```
 
@@ -120,24 +120,24 @@ gcloud run services update product-finder-staging \
 
 ```bash
 # Build and push
-docker build -t us-central1-docker.pkg.dev/PROJECT/product-finder-staging/product-finder:latest .
-docker push us-central1-docker.pkg.dev/PROJECT/product-finder-staging/product-finder:latest
+docker build -t us-east1-docker.pkg.dev/PROJECT/product-finder-staging/product-finder:latest .
+docker push us-east1-docker.pkg.dev/PROJECT/product-finder-staging/product-finder:latest
 
 # Deploy
 gcloud run services update product-finder-staging \
-  --image=us-central1-docker.pkg.dev/PROJECT/product-finder-staging/product-finder:latest \
-  --region=us-central1
+  --image=us-east1-docker.pkg.dev/PROJECT/product-finder-staging/product-finder:latest \
+  --region=us-east1
 ```
 
 ### Rollback
 
 ```bash
 # List revisions
-gcloud run revisions list --service=product-finder-staging --region=us-central1
+gcloud run revisions list --service=product-finder-staging --region=us-east1
 
 # Rollback to specific revision
 gcloud run services update-traffic product-finder-staging \
-  --region=us-central1 \
+  --region=us-east1 \
   --to-revisions=REVISION_NAME=100
 ```
 
@@ -164,7 +164,7 @@ terraform destroy
 
 Check logs:
 ```bash
-gcloud run services logs read product-finder-staging --region=us-central1
+gcloud run services logs read product-finder-staging --region=us-east1
 ```
 
 Common issues:
@@ -177,7 +177,7 @@ Common issues:
 Verify Cloud SQL and VPC connector:
 ```bash
 gcloud sql instances list
-gcloud compute networks vpc-access connectors list --region=us-central1
+gcloud compute networks vpc-access connectors list --region=us-east1
 ```
 
 ### Secret access denied

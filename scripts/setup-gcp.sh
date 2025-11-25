@@ -23,8 +23,8 @@ fi
 
 # Prompt for region if not set
 if [ -z "$GCP_REGION" ]; then
-    read -p "Enter your preferred GCP region (default: us-central1): " GCP_REGION
-    GCP_REGION=${GCP_REGION:-us-central1}
+    read -p "Enter your preferred GCP region (default: us-east1): " GCP_REGION
+    GCP_REGION=${GCP_REGION:-us-east1}
 fi
 
 # Prompt for GitHub repo

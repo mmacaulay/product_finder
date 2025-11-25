@@ -97,7 +97,7 @@ For issues or questions:
 
 1. Check [troubleshooting section](./gcp-setup.md#troubleshooting) in the setup guide
 2. Review [GitHub Actions logs](https://github.com/your-repo/actions)
-3. Check Cloud Run logs: `gcloud run services logs read product-finder-staging --region=us-central1`
+3. Check Cloud Run logs: `gcloud run services logs read product-finder-staging --region=us-east1`
 
 ## Future Enhancements
 

@@ -82,7 +82,7 @@ Run the automated setup script:
 ```bash
 # Set environment variables
 export GCP_PROJECT_ID="your-project-id"
-export GCP_REGION="us-central1"
+export GCP_REGION="us-east1"
 export GITHUB_REPO="your-username/product_finder"
 
 # Run setup script
@@ -113,7 +113,7 @@ gcloud services enable run.googleapis.com sqladmin.googleapis.com \
 ```bash
 gcloud artifacts repositories create product-finder-staging \
   --repository-format=docker \
-  --location=us-central1 \
+  --location=us-east1 \
   --description="Docker repository for Product Finder"
 ```
 
@@ -144,7 +144,7 @@ Add the following secrets to your GitHub repository (Settings > Secrets and vari
 | Secret Name | Value | Description |
 |-------------|-------|-------------|
 | `GCP_PROJECT_ID` | Your GCP project ID | e.g., `my-project-123` |
-| `GCP_REGION` | Your GCP region | e.g., `us-central1` |
+| `GCP_REGION` | Your GCP region | e.g., `us-east1` |
 | `GCP_WORKLOAD_IDENTITY_PROVIDER` | Full provider ID | From setup script output |
 | `GCP_SERVICE_ACCOUNT` | Service account email | From setup script output |
 
@@ -166,7 +166,7 @@ cp terraform.tfvars.example terraform.tfvars
 2. Edit `terraform.tfvars` with your values:
 ```hcl
 project_id  = "your-gcp-project-id"
-region      = "us-central1"
+region      = "us-east1"
 environment = "staging"
 ```
 
@@ -250,18 +250,18 @@ For testing or troubleshooting:
 
 ```bash
 # Authenticate Docker with Artifact Registry
-gcloud auth configure-docker us-central1-docker.pkg.dev
+gcloud auth configure-docker us-east1-docker.pkg.dev
 
 # Build image
-docker build -t us-central1-docker.pkg.dev/YOUR_PROJECT/product-finder-staging/product-finder:latest .
+docker build -t us-east1-docker.pkg.dev/YOUR_PROJECT/product-finder-staging/product-finder:latest .
 
 # Push image
-docker push us-central1-docker.pkg.dev/YOUR_PROJECT/product-finder-staging/product-finder:latest
+docker push us-east1-docker.pkg.dev/YOUR_PROJECT/product-finder-staging/product-finder:latest
 
 # Deploy to Cloud Run
 gcloud run services update product-finder-staging \
-  --image=us-central1-docker.pkg.dev/YOUR_PROJECT/product-finder-staging/product-finder:latest \
-  --region=us-central1
+  --image=us-east1-docker.pkg.dev/YOUR_PROJECT/product-finder-staging/product-finder:latest \
+  --region=us-east1
 ```
 
 ## Post-Deployment
@@ -272,7 +272,7 @@ Get your application URL:
 ```bash
 terraform output cloud_run_url
 # OR
-gcloud run services describe product-finder-staging --region=us-central1 --format='value(status.url)'
+gcloud run services describe product-finder-staging --region=us-east1 --format='value(status.url)'
 ```
 
 Test endpoints:
@@ -296,10 +296,10 @@ Connect to Cloud Run to create an admin user:
 gcloud sql instances list
 
 # Connect via Cloud SQL Proxy (in one terminal)
-cloud-sql-proxy your-project:us-central1:your-instance-name
+cloud-sql-proxy your-project:us-east1:your-instance-name
 
 # In another terminal, use the deployed Cloud Run service to run management command
-gcloud run services describe product-finder-staging --region=us-central1 --format='value(status.url)'
+gcloud run services describe product-finder-staging --region=us-east1 --format='value(status.url)'
 
 # Option 1: Use gcloud run jobs (if configured)
 # Option 2: Manually via Cloud SQL proxy and local Django
@@ -328,14 +328,14 @@ Update Cloud Run environment variable:
 
 ```bash
 CLOUD_RUN_URL=$(gcloud run services describe product-finder-staging \
-  --region=us-central1 --format='value(status.url)')
+  --region=us-east1 --format='value(status.url)')
 
 # Extract domain
 DOMAIN=$(echo $CLOUD_RUN_URL | sed 's|https://||')
 
 # Update Cloud Run service
 gcloud run services update product-finder-staging \
-  --region=us-central1 \
+  --region=us-east1 \
   --update-env-vars="ALLOWED_HOSTS=$DOMAIN,localhost,127.0.0.1"
 ```
 
@@ -361,7 +361,7 @@ Or add to Terraform's Cloud Run environment variables.
 
 **Check logs:**
 ```bash
-gcloud run services logs read product-finder-staging --region=us-central1 --limit=50
+gcloud run services logs read product-finder-staging --region=us-east1 --limit=50
 ```
 
 **Common issues:**
@@ -378,7 +378,7 @@ gcloud sql instances describe YOUR_INSTANCE_NAME
 
 **Check VPC connector:**
 ```bash
-gcloud compute networks vpc-access connectors list --region=us-central1
+gcloud compute networks vpc-access connectors list --region=us-east1
 ```
 
 **Test connection from Cloud Shell:**
@@ -459,7 +459,7 @@ terraform destroy
 4. **Delete old Docker images:**
 ```bash
 gcloud artifacts docker images list \
-  us-central1-docker.pkg.dev/PROJECT/product-finder-staging/product-finder
+  us-east1-docker.pkg.dev/PROJECT/product-finder-staging/product-finder
 
 # Delete old versions
 gcloud artifacts docker images delete IMAGE_URL --quiet
@@ -523,11 +523,11 @@ If deployment fails or has issues:
 
 ```bash
 # List revisions
-gcloud run revisions list --service=product-finder-staging --region=us-central1
+gcloud run revisions list --service=product-finder-staging --region=us-east1
 
 # Rollback to previous revision
 gcloud run services update-traffic product-finder-staging \
-  --region=us-central1 \
+  --region=us-east1 \
   --to-revisions=REVISION_NAME=100
 ```
 

@@ -11,7 +11,7 @@ cd "$(dirname "$0")"
 # Import Artifact Registry
 echo "1. Importing Artifact Registry..."
 terraform import google_artifact_registry_repository.docker_repo \
-  "projects/product-finder-478702/locations/northamerica-northeast2/repositories/product-finder-staging" 2>&1 | grep -v "Warning" || echo "  (already imported or error - continuing...)"
+  "projects/product-finder-478702/locations/us-east1/repositories/product-finder-staging" 2>&1 | grep -v "Warning" || echo "  (already imported or error - continuing...)"
 
 # Import secrets (metadata)
 echo ""

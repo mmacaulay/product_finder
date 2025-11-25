@@ -6,7 +6,7 @@ variable "job_name" {
 variable "location" {
   type        = string
   description = "Region for the job."
-  default     = "northamerica-northeast2"
+  default     = "us-east1"
 }
 
 variable "image" {
