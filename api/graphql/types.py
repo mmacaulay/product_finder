@@ -1,7 +1,6 @@
 import graphene
-from graphene_django import DjangoObjectType
 from graphene.types.generic import GenericScalar
-from api.models import Product, LLMPrompt, LLMQueryResult
+from api.services.llm import LLMService
 from api.services.llm import LLMService
 import logging
 
@@ -104,7 +103,15 @@ class SafetyAnalysisType(graphene.ObjectType):
         return self.get('_metadata', {}).get('generated_at')
 
 
-class ProductType(DjangoObjectType):
+class ProductType(graphene.ObjectType):
+    id = graphene.ID()
+    upc_code = graphene.String()
+    name = graphene.String()
+    brand = graphene.String()
+    image_url = graphene.String()
+    created_at = graphene.DateTime()
+    updated_at = graphene.DateTime()
+
     # Add LLM insight fields with structured types
     review_summary = graphene.Field(
         ReviewSummaryType,
@@ -119,18 +126,6 @@ class ProductType(DjangoObjectType):
         force_refresh=graphene.Boolean(required=False),
         description="Get a structured safety analysis for this product"
     )
-    
-    class Meta:
-        model = Product
-        fields = (
-            'id',
-            'upc_code',
-            'name',
-            'brand',
-            'image_url',
-            'created_at',
-            'updated_at',
-        )
     
     def resolve_review_summary(self, info, provider=None, force_refresh=False):
         """
@@ -148,6 +143,7 @@ class ProductType(DjangoObjectType):
             provider_name = provider or llm_service.default_provider_name
             
             # Get insight from LLM service (handles caching internally)
+            # self is now a dict from Firestore
             result = llm_service.get_product_insight(
                 product=self,
                 query_type='review_summary',
@@ -161,7 +157,7 @@ class ProductType(DjangoObjectType):
                 content['_metadata'] = {
                     'provider': provider_name,
                     'cached': result['cached'],
-                    'generated_at': result['result_obj'].created_at,
+                    'generated_at': result['result_obj'].get('created_at'),
                 }
                 return content
             else:
@@ -169,9 +165,6 @@ class ProductType(DjangoObjectType):
                 logger.warning(f"Non-dict content returned: {content}")
                 return None
             
-        except LLMPrompt.DoesNotExist:
-            logger.warning("No active 'review_summary' prompt found")
-            return None
         except Exception as e:
             logger.error(f"Error resolving review_summary: {e}", exc_info=True)
             return None
@@ -205,16 +198,13 @@ class ProductType(DjangoObjectType):
                 content['_metadata'] = {
                     'provider': provider_name,
                     'cached': result['cached'],
-                    'generated_at': result['result_obj'].created_at,
+                    'generated_at': result['result_obj'].get('created_at'),
                 }
                 return content
             else:
                 logger.warning(f"Non-dict content returned: {content}")
                 return None
             
-        except LLMPrompt.DoesNotExist:
-            logger.warning("No active 'safety_analysis' prompt found")
-            return None
         except Exception as e:
             logger.error(f"Error resolving safety_analysis: {e}", exc_info=True)
             return None

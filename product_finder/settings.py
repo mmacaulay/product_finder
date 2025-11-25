@@ -278,6 +278,12 @@ DE_PRODUCT_CONFIG = {
 }
 
 
+# Firestore Configuration
+FIRESTORE_PROJECT_ID = env('FIRESTORE_PROJECT_ID', default=env('GOOGLE_CLOUD_PROJECT', default='product-finder-478702'))
+FIRESTORE_CREDENTIALS = env('GOOGLE_APPLICATION_CREDENTIALS', default=None)
+FIRESTORE_EMULATOR_HOST = env('FIRESTORE_EMULATOR_HOST', default=None)
+
+
 # Django REST Framework Configuration
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
