@@ -3,13 +3,15 @@ Management command to seed initial LLM prompts.
 """
 
 from django.core.management.base import BaseCommand
-from api.models import LLMPrompt
+from api.firestore_models import LLMPromptDAO
 
 
 class Command(BaseCommand):
-    help = 'Seeds initial LLM prompt templates'
+    help = 'Seeds initial LLM prompt templates to Firestore'
 
     def handle(self, *args, **options):
+        dao = LLMPromptDAO()
+        
         prompts = [
             {
                 'name': 'review_summary_basic',
@@ -103,25 +105,25 @@ Instructions:
         updated_count = 0
         
         for prompt_data in prompts:
-            prompt, created = LLMPrompt.objects.update_or_create(
-                name=prompt_data['name'],
-                defaults=prompt_data
-            )
+            name = prompt_data['name']
+            existing = dao.get_by_name(name)
             
-            if created:
-                created_count += 1
-                self.stdout.write(
-                    self.style.SUCCESS(f'✓ Created prompt: {prompt.name}')
-                )
-            else:
+            if existing:
+                dao.update(name, **prompt_data)
                 updated_count += 1
                 self.stdout.write(
-                    self.style.WARNING(f'→ Updated prompt: {prompt.name}')
+                    self.style.WARNING(f'→ Updated prompt: {name}')
+                )
+            else:
+                dao.create(**prompt_data)
+                created_count += 1
+                self.stdout.write(
+                    self.style.SUCCESS(f'✓ Created prompt: {name}')
                 )
         
         self.stdout.write(
             self.style.SUCCESS(
-                f'\nSuccessfully seeded {created_count} new and updated {updated_count} existing prompts'
+                f'\nSuccessfully seeded {created_count} new and updated {updated_count} existing prompts to Firestore'
             )
         )
 

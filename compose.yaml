@@ -8,3 +8,24 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
+
+  firestore:
+    image: gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators
+    command: gcloud beta emulators firestore start --host-port=0.0.0.0:8080
+    ports:
+      - "8080:8080"
+
+  web:
+    build: .
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - firestore
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/product_finder_dev
+      - FIRESTORE_EMULATOR_HOST=firestore:8080
+      - FIRESTORE_PROJECT_ID=product-finder-dev
