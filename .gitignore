@@ -157,3 +157,4 @@ cython_debug/
 *.sqlite3-shm
 *.sqlite3-wal
 
+.claude/
