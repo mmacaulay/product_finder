@@ -21,34 +21,46 @@ class TestProductDAO(unittest.TestCase):
         # Setup mock
         mock_doc_ref = MagicMock()
         self.mock_collection.document.return_value = mock_doc_ref
-        mock_doc_ref.get.return_value.exists = False
-        
+        mock_snapshot = MagicMock()
+        mock_snapshot.exists = True
+        mock_snapshot.id = '123456789012'
+        mock_snapshot.to_dict.return_value = {
+            'upc_code': '123456789012',
+            'name': 'Test Product',
+            'brand': 'Test Brand'
+        }
+        mock_doc_ref.get.return_value = mock_snapshot
+
         # Call create
-        self.dao.create(
+        result = self.dao.create(
             upc_code='123456789012',
             name='Test Product',
             brand='Test Brand'
         )
-        
+
         # Verify
         self.mock_collection.document.assert_called_with('123456789012')
-        mock_doc_ref.set.assert_called()
-        call_args = mock_doc_ref.set.call_args[0][0]
+        mock_doc_ref.create.assert_called()
+        call_args = mock_doc_ref.create.call_args[0][0]
         self.assertEqual(call_args['upc_code'], '123456789012')
         self.assertEqual(call_args['name'], 'Test Product')
+        # Verify refetch happened
+        mock_doc_ref.get.assert_called()
 
     def test_create_duplicate_product(self):
         # Setup mock to simulate existing product
+        from google.api_core.exceptions import AlreadyExists
         mock_doc_ref = MagicMock()
         self.mock_collection.document.return_value = mock_doc_ref
-        mock_doc_ref.get.return_value.exists = True
-        
-        # Verify raises ValueError
-        with self.assertRaises(ValueError):
+        mock_doc_ref.create.side_effect = AlreadyExists("Document already exists")
+
+        # Verify raises ValueError (wrapped from AlreadyExists)
+        with self.assertRaises(ValueError) as context:
             self.dao.create(
                 upc_code='123456789012',
                 name='Test Product'
             )
+        self.assertIn('already exists', str(context.exception))
 
     def test_get_by_upc(self):
         # Setup mock
@@ -88,15 +100,26 @@ class TestLLMPromptDAO(unittest.TestCase):
     def test_create_prompt(self):
         mock_doc_ref = MagicMock()
         self.mock_collection.document.return_value = mock_doc_ref
-        
-        self.dao.create(
+        mock_snapshot = MagicMock()
+        mock_snapshot.exists = True
+        mock_snapshot.id = 'test_prompt'
+        mock_snapshot.to_dict.return_value = {
+            'name': 'test_prompt',
+            'query_type': 'test',
+            'prompt_template': 'Hello {name}'
+        }
+        mock_doc_ref.get.return_value = mock_snapshot
+
+        result = self.dao.create(
             name='test_prompt',
             query_type='test',
             prompt_template='Hello {name}'
         )
-        
+
         self.mock_collection.document.assert_called_with('test_prompt')
         mock_doc_ref.set.assert_called()
         call_args = mock_doc_ref.set.call_args[0][0]
         self.assertEqual(call_args['name'], 'test_prompt')
         self.assertEqual(call_args['prompt_template'], 'Hello {name}')
+        # Verify refetch happened
+        mock_doc_ref.get.assert_called()

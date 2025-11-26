@@ -1,9 +1,9 @@
 import os
 import logging
-from datetime import datetime
 from google.cloud import firestore
 from django.conf import settings
 from django.utils import timezone
+from google.api_core.exceptions import AlreadyExists
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +15,7 @@ class FirestoreClient:
     def get_client(cls):
         if cls._client is None:
             project_id = settings.FIRESTORE_PROJECT_ID
-            
+
             # Check for emulator
             emulator_host = settings.FIRESTORE_EMULATOR_HOST
             if emulator_host:
@@ -37,7 +37,7 @@ class FirestoreClient:
         return cls._client
 
 class BaseDAO:
-    collection_name = None
+    collection_name = ''
 
     def __init__(self):
         self.client = FirestoreClient.get_client()
@@ -56,10 +56,6 @@ class ProductDAO(BaseDAO):
     def create(self, upc_code, name, brand=None, image_url=None, de_product_data=None):
         # Use UPC as document ID for easy lookup and uniqueness
         doc_ref = self.collection.document(upc_code)
-        
-        # Check if exists
-        if doc_ref.get().exists:
-            raise ValueError(f"Product with UPC {upc_code} already exists")
 
         data = {
             'upc_code': upc_code,
@@ -70,7 +66,13 @@ class ProductDAO(BaseDAO):
             'created_at': firestore.SERVER_TIMESTAMP,
             'updated_at': firestore.SERVER_TIMESTAMP
         }
-        doc_ref.set(data)
+
+        try:
+            doc_ref.create(data)
+        except AlreadyExists:
+            raise ValueError(f"Product with UPC {upc_code} already exists")
+
+        # Refetch to get actual server timestamps
         return self._to_dict(doc_ref.get())
 
     def get_by_upc(self, upc_code):
@@ -85,7 +87,7 @@ class ProductDAO(BaseDAO):
         doc_ref = self.collection.document(upc_code)
         if not doc_ref.get().exists:
             return None
-        
+
         kwargs['updated_at'] = firestore.SERVER_TIMESTAMP
         doc_ref.update(kwargs)
         return self._to_dict(doc_ref.get())
@@ -98,8 +100,9 @@ class LLMPromptDAO(BaseDAO):
 
     def create(self, name, query_type, prompt_template, description='', response_schema=None, schema_version='1.0', is_active=True):
         # Use name as document ID for uniqueness
+        # Uses .set() for upsert behavior - allows seed command to update existing prompts
         doc_ref = self.collection.document(name)
-        
+
         data = {
             'name': name,
             'query_type': query_type,
@@ -117,7 +120,7 @@ class LLMPromptDAO(BaseDAO):
     def get_by_name(self, name):
         doc = self.collection.document(name).get()
         return self._to_dict(doc)
-    
+
     def get_active_by_type(self, query_type):
         query = self.collection.where('query_type', '==', query_type).where('is_active', '==', True)
         docs = query.stream()
@@ -127,7 +130,7 @@ class LLMPromptDAO(BaseDAO):
         doc_ref = self.collection.document(name)
         if not doc_ref.get().exists:
             return None
-            
+
         kwargs['updated_at'] = firestore.SERVER_TIMESTAMP
         doc_ref.update(kwargs)
         return self._to_dict(doc_ref.get())
@@ -157,7 +160,7 @@ class LLMQueryResultDAO(BaseDAO):
             'updated_at': firestore.SERVER_TIMESTAMP
         }
         doc_ref.set(data)
-        return self._to_dict(doc_ref.get())
+        return self._to_dict(doc_ref)
 
     def get_by_composite_key(self, product_upc, prompt_name, provider):
         doc_id = f"{product_upc}_{prompt_name}_{provider}"
