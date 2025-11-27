@@ -43,7 +43,7 @@ Format:
   }
 }
 EOT
-  type        = map(object({
+  type = map(object({
     secret  = string
     version = string
   }))
@@ -69,23 +69,23 @@ variable "vpc_connector" {
 }
 
 variable "cpu" {
-  type        = string
-  default     = "1"
+  type    = string
+  default = "1"
 }
 
 variable "memory" {
-  type        = string
-  default     = "512Mi"
+  type    = string
+  default = "512Mi"
 }
 
 variable "timeout" {
-  type        = string
-  default     = "900s"
+  type    = string
+  default = "900s"
 }
 
 variable "max_retries" {
-  type        = number
-  default     = 1
+  type    = number
+  default = 1
 }
 
 variable "service_account" {

@@ -74,8 +74,8 @@ resource "google_cloud_run_v2_job" "task_runner" {
       }
 
       service_account = var.service_account
-      max_retries = var.max_retries
-      timeout     = var.timeout
+      max_retries     = var.max_retries
+      timeout         = var.timeout
     }
   }
 }

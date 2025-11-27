@@ -4,41 +4,41 @@
 
 resource "google_secret_manager_secret" "django_secret_key" {
   secret_id = "${var.app_name}-${var.environment}-django-secret-key"
-  
+
   replication {
     auto {}
   }
-  
+
   depends_on = [google_project_service.required_apis]
 }
 
 resource "google_secret_manager_secret" "django_superuser_username" {
   secret_id = "${var.app_name}-${var.environment}-django-superuser-username"
-  
+
   replication {
     auto {}
   }
-  
+
   depends_on = [google_project_service.required_apis]
 }
 
 resource "google_secret_manager_secret" "django_superuser_email" {
   secret_id = "${var.app_name}-${var.environment}-django-superuser-email"
-  
+
   replication {
     auto {}
   }
-  
+
   depends_on = [google_project_service.required_apis]
 }
 
 resource "google_secret_manager_secret" "django_superuser_password" {
   secret_id = "${var.app_name}-${var.environment}-django-superuser-password"
-  
+
   replication {
     auto {}
   }
-  
+
   depends_on = [google_project_service.required_apis]
 }
 
@@ -49,18 +49,18 @@ resource "random_id" "secret_placeholder" {
 # DE Product API Base URL
 resource "google_secret_manager_secret" "de_product_api_base_url" {
   secret_id = "${var.app_name}-${var.environment}-de-product-api-base-url"
-  
+
   replication {
     auto {}
   }
-  
+
   depends_on = [google_project_service.required_apis]
 }
 
 resource "google_secret_manager_secret_version" "de_product_api_base_url" {
-  secret = google_secret_manager_secret.de_product_api_base_url.id
+  secret      = google_secret_manager_secret.de_product_api_base_url.id
   secret_data = "https://digit-eyes.com/gtin/v3_0/"
-  
+
   lifecycle {
     ignore_changes = [secret_data]
   }
@@ -69,18 +69,18 @@ resource "google_secret_manager_secret_version" "de_product_api_base_url" {
 # DE Product App Key
 resource "google_secret_manager_secret" "de_product_app_key" {
   secret_id = "${var.app_name}-${var.environment}-de-product-app-key"
-  
+
   replication {
     auto {}
   }
-  
+
   depends_on = [google_project_service.required_apis]
 }
 
 resource "google_secret_manager_secret_version" "de_product_app_key" {
-  secret = google_secret_manager_secret.de_product_app_key.id
-  secret_data = "CHANGE_ME"  # Placeholder - update via script
-  
+  secret      = google_secret_manager_secret.de_product_app_key.id
+  secret_data = "CHANGE_ME" # Placeholder - update via script
+
   lifecycle {
     ignore_changes = [secret_data]
   }
@@ -89,18 +89,18 @@ resource "google_secret_manager_secret_version" "de_product_app_key" {
 # DE Product Auth Key
 resource "google_secret_manager_secret" "de_product_auth_key" {
   secret_id = "${var.app_name}-${var.environment}-de-product-auth-key"
-  
+
   replication {
     auto {}
   }
-  
+
   depends_on = [google_project_service.required_apis]
 }
 
 resource "google_secret_manager_secret_version" "de_product_auth_key" {
-  secret = google_secret_manager_secret.de_product_auth_key.id
-  secret_data = "CHANGE_ME"  # Placeholder - update via script
-  
+  secret      = google_secret_manager_secret.de_product_auth_key.id
+  secret_data = "CHANGE_ME" # Placeholder - update via script
+
   lifecycle {
     ignore_changes = [secret_data]
   }
@@ -109,18 +109,18 @@ resource "google_secret_manager_secret_version" "de_product_auth_key" {
 # DE Product Field Names
 resource "google_secret_manager_secret" "de_product_field_names" {
   secret_id = "${var.app_name}-${var.environment}-de-product-field-names"
-  
+
   replication {
     auto {}
   }
-  
+
   depends_on = [google_project_service.required_apis]
 }
 
 resource "google_secret_manager_secret_version" "de_product_field_names" {
-  secret = google_secret_manager_secret.de_product_field_names.id
+  secret      = google_secret_manager_secret.de_product_field_names.id
   secret_data = "description,uom,usage,brand,language,website,product_web_page,nutrition,formattedNutrition,ingredients,manufacturer,image,thumbnail,categories"
-  
+
   lifecycle {
     ignore_changes = [secret_data]
   }
@@ -129,18 +129,18 @@ resource "google_secret_manager_secret_version" "de_product_field_names" {
 # Perplexity API Key
 resource "google_secret_manager_secret" "perplexity_api_key" {
   secret_id = "${var.app_name}-${var.environment}-perplexity-api-key"
-  
+
   replication {
     auto {}
   }
-  
+
   depends_on = [google_project_service.required_apis]
 }
 
 resource "google_secret_manager_secret_version" "perplexity_api_key" {
-  secret = google_secret_manager_secret.perplexity_api_key.id
-  secret_data = "CHANGE_ME"  # Placeholder - update via script
-  
+  secret      = google_secret_manager_secret.perplexity_api_key.id
+  secret_data = "CHANGE_ME" # Placeholder - update via script
+
   lifecycle {
     ignore_changes = [secret_data]
   }
@@ -149,18 +149,18 @@ resource "google_secret_manager_secret_version" "perplexity_api_key" {
 # OpenAI API Key
 resource "google_secret_manager_secret" "openai_api_key" {
   secret_id = "${var.app_name}-${var.environment}-openai-api-key"
-  
+
   replication {
     auto {}
   }
-  
+
   depends_on = [google_project_service.required_apis]
 }
 
 resource "google_secret_manager_secret_version" "openai_api_key" {
-  secret = google_secret_manager_secret.openai_api_key.id
-  secret_data = "CHANGE_ME"  # Placeholder - update via script
-  
+  secret      = google_secret_manager_secret.openai_api_key.id
+  secret_data = "CHANGE_ME" # Placeholder - update via script
+
   lifecycle {
     ignore_changes = [secret_data]
   }
@@ -169,18 +169,18 @@ resource "google_secret_manager_secret_version" "openai_api_key" {
 # Default LLM Provider
 resource "google_secret_manager_secret" "default_llm_provider" {
   secret_id = "${var.app_name}-${var.environment}-default-llm-provider"
-  
+
   replication {
     auto {}
   }
-  
+
   depends_on = [google_project_service.required_apis]
 }
 
 resource "google_secret_manager_secret_version" "default_llm_provider" {
-  secret = google_secret_manager_secret.default_llm_provider.id
+  secret      = google_secret_manager_secret.default_llm_provider.id
   secret_data = "perplexity"
-  
+
   lifecycle {
     ignore_changes = [secret_data]
   }
