@@ -6,32 +6,42 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('api', '0005_llmprompt_llmqueryresult'),
+        ("api", "0005_llmprompt_llmqueryresult"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='llmprompt',
-            name='query_type',
-            field=models.CharField(help_text="Category of query (e.g., 'review_summary', 'safety_analysis')", max_length=50),
+            model_name="llmprompt",
+            name="query_type",
+            field=models.CharField(
+                help_text="Category of query (e.g., 'review_summary', 'safety_analysis')",
+                max_length=50,
+            ),
         ),
         migrations.AlterField(
-            model_name='llmqueryresult',
-            name='created_at',
+            model_name="llmqueryresult",
+            name="created_at",
             field=models.DateTimeField(auto_now_add=True),
         ),
         migrations.AlterField(
-            model_name='llmqueryresult',
-            name='is_stale',
-            field=models.BooleanField(default=False, help_text='Mark for refresh if data is outdated'),
+            model_name="llmqueryresult",
+            name="is_stale",
+            field=models.BooleanField(
+                default=False, help_text="Mark for refresh if data is outdated"
+            ),
         ),
         migrations.AlterField(
-            model_name='llmqueryresult',
-            name='provider',
-            field=models.CharField(help_text="LLM provider used (e.g., 'openai', 'perplexity')", max_length=50),
+            model_name="llmqueryresult",
+            name="provider",
+            field=models.CharField(
+                help_text="LLM provider used (e.g., 'openai', 'perplexity')",
+                max_length=50,
+            ),
         ),
         migrations.AddIndex(
-            model_name='llmqueryresult',
-            index=models.Index(fields=['provider'], name='api_llmquer_provide_3db960_idx'),
+            model_name="llmqueryresult",
+            index=models.Index(
+                fields=["provider"], name="api_llmquer_provide_3db960_idx"
+            ),
         ),
     ]

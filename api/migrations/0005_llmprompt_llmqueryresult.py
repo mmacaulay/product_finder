@@ -7,45 +7,147 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('api', '0004_alter_product_brand'),
+        ("api", "0004_alter_product_brand"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='LLMPrompt',
+            name="LLMPrompt",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(help_text='Unique identifier for this prompt', max_length=255, unique=True)),
-                ('description', models.TextField(blank=True, help_text='What this prompt is used for')),
-                ('prompt_template', models.TextField(help_text='Prompt text with variables like {product_name}, {brand}, {upc_code}')),
-                ('query_type', models.CharField(db_index=True, help_text="Category of query (e.g., 'review_summary', 'safety_analysis')", max_length=50)),
-                ('is_active', models.BooleanField(default=True, help_text='Whether this prompt is currently in use')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "name",
+                    models.CharField(
+                        help_text="Unique identifier for this prompt",
+                        max_length=255,
+                        unique=True,
+                    ),
+                ),
+                (
+                    "description",
+                    models.TextField(
+                        blank=True, help_text="What this prompt is used for"
+                    ),
+                ),
+                (
+                    "prompt_template",
+                    models.TextField(
+                        help_text="Prompt text with variables like {product_name}, {brand}, {upc_code}"
+                    ),
+                ),
+                (
+                    "query_type",
+                    models.CharField(
+                        db_index=True,
+                        help_text="Category of query (e.g., 'review_summary', 'safety_analysis')",
+                        max_length=50,
+                    ),
+                ),
+                (
+                    "is_active",
+                    models.BooleanField(
+                        default=True,
+                        help_text="Whether this prompt is currently in use",
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
             ],
             options={
-                'ordering': ['query_type', 'name'],
-                'indexes': [models.Index(fields=['query_type', 'is_active'], name='api_llmprom_query_t_136c97_idx')],
+                "ordering": ["query_type", "name"],
+                "indexes": [
+                    models.Index(
+                        fields=["query_type", "is_active"],
+                        name="api_llmprom_query_t_136c97_idx",
+                    )
+                ],
             },
         ),
         migrations.CreateModel(
-            name='LLMQueryResult',
+            name="LLMQueryResult",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('provider', models.CharField(db_index=True, help_text="LLM provider used (e.g., 'openai', 'perplexity')", max_length=50)),
-                ('query_input', models.TextField(help_text='The actual rendered prompt sent to the LLM')),
-                ('result', models.TextField(help_text="The LLM's response")),
-                ('metadata', models.JSONField(blank=True, default=dict, help_text='Additional data like tokens used, model version, cost estimate')),
-                ('is_stale', models.BooleanField(db_index=True, default=False, help_text='Mark for refresh if data is outdated')),
-                ('created_at', models.DateTimeField(auto_now_add=True, db_index=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('product', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='llm_results', to='api.product')),
-                ('prompt', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='results', to='api.llmprompt')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "provider",
+                    models.CharField(
+                        db_index=True,
+                        help_text="LLM provider used (e.g., 'openai', 'perplexity')",
+                        max_length=50,
+                    ),
+                ),
+                (
+                    "query_input",
+                    models.TextField(
+                        help_text="The actual rendered prompt sent to the LLM"
+                    ),
+                ),
+                ("result", models.TextField(help_text="The LLM's response")),
+                (
+                    "metadata",
+                    models.JSONField(
+                        blank=True,
+                        default=dict,
+                        help_text="Additional data like tokens used, model version, cost estimate",
+                    ),
+                ),
+                (
+                    "is_stale",
+                    models.BooleanField(
+                        db_index=True,
+                        default=False,
+                        help_text="Mark for refresh if data is outdated",
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True, db_index=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "product",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="llm_results",
+                        to="api.product",
+                    ),
+                ),
+                (
+                    "prompt",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="results",
+                        to="api.llmprompt",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-created_at'],
-                'indexes': [models.Index(fields=['product', 'prompt', 'provider'], name='api_llmquer_product_6126fb_idx'), models.Index(fields=['created_at'], name='api_llmquer_created_35d928_idx'), models.Index(fields=['is_stale'], name='api_llmquer_is_stal_b82c12_idx')],
-                'unique_together': {('product', 'prompt', 'provider')},
+                "ordering": ["-created_at"],
+                "indexes": [
+                    models.Index(
+                        fields=["product", "prompt", "provider"],
+                        name="api_llmquer_product_6126fb_idx",
+                    ),
+                    models.Index(
+                        fields=["created_at"], name="api_llmquer_created_35d928_idx"
+                    ),
+                    models.Index(
+                        fields=["is_stale"], name="api_llmquer_is_stal_b82c12_idx"
+                    ),
+                ],
+                "unique_together": {("product", "prompt", "provider")},
             },
         ),
     ]

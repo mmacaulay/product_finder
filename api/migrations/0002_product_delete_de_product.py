@@ -6,23 +6,31 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('api', '0001_initial'),
+        ("api", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Product',
+            name="Product",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('upc_code', models.CharField(max_length=12, unique=True)),
-                ('name', models.CharField(max_length=255)),
-                ('brand', models.CharField(blank=True, max_length=255)),
-                ('de_product_data', models.JSONField()),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("upc_code", models.CharField(max_length=12, unique=True)),
+                ("name", models.CharField(max_length=255)),
+                ("brand", models.CharField(blank=True, max_length=255)),
+                ("de_product_data", models.JSONField()),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
             ],
         ),
         migrations.DeleteModel(
-            name='DE_Product',
+            name="DE_Product",
         ),
     ]
