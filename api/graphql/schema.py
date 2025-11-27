@@ -3,6 +3,7 @@ from api.models import Product
 from api.graphql.types import ProductType
 from api.services.de_product_api import DEProductAPI
 
+
 class Query(graphene.ObjectType):
     all_products = graphene.List(ProductType)
     product_by_upc = graphene.Field(ProductType, upc=graphene.String(required=True))
@@ -25,9 +26,9 @@ class Query(graphene.ObjectType):
             if de_product:
                 product = Product.objects.create(
                     upc_code=upc,
-                    name=de_product['description'],
-                    brand=de_product['brand'],
-                    image_url=de_product.get('image'),
+                    name=de_product["description"],
+                    brand=de_product["brand"],
+                    image_url=de_product.get("image"),
                     de_product_data=de_product,
                 )
                 product.save()
@@ -40,5 +41,6 @@ class Query(graphene.ObjectType):
             return Product.objects.get(id=id)
         except Product.DoesNotExist:
             return None
+
 
 schema = graphene.Schema(query=Query)

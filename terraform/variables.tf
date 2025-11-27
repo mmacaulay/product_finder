@@ -19,7 +19,7 @@ variable "environment" {
   description = "Environment name (staging, production)"
   type        = string
   default     = "staging"
-  
+
   validation {
     condition     = contains(["staging", "production"], var.environment)
     error_message = "Environment must be either 'staging' or 'production'."
@@ -86,7 +86,7 @@ variable "log_level" {
   description = "Application log level"
   type        = string
   default     = "INFO"
-  
+
   validation {
     condition     = contains(["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], var.log_level)
     error_message = "Log level must be one of: DEBUG, INFO, WARNING, ERROR, CRITICAL."

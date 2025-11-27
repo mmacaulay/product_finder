@@ -7,16 +7,16 @@ from api.models import LLMPrompt
 
 
 class Command(BaseCommand):
-    help = 'Seeds initial LLM prompt templates'
+    help = "Seeds initial LLM prompt templates"
 
     def handle(self, *args, **options):
         prompts = [
             {
-                'name': 'review_summary_basic',
-                'description': 'Basic review summary for products with structured JSON output',
-                'query_type': 'review_summary',
-                'schema_version': '1.0',
-                'prompt_template': '''Analyze user reviews for the product "{product_name}" by {brand} (UPC: {upc_code}).
+                "name": "review_summary_basic",
+                "description": "Basic review summary for products with structured JSON output",
+                "query_type": "review_summary",
+                "schema_version": "1.0",
+                "prompt_template": """Analyze user reviews for the product "{product_name}" by {brand} (UPC: {upc_code}).
 
 You MUST respond with ONLY valid JSON in this exact format. Do not include markdown, code blocks, or any other text:
 
@@ -35,15 +35,15 @@ Instructions:
 - pros/cons: Exactly 3 items each (or fewer if not enough data)
 - key_themes: Main recurring topics in reviews
 - confidence: Based on number and quality of reviews found
-- Focus on actual user experiences, not marketing claims''',
-                'is_active': True
+- Focus on actual user experiences, not marketing claims""",
+                "is_active": True,
             },
             {
-                'name': 'review_summary_detailed',
-                'description': 'Detailed review analysis with structured JSON output',
-                'query_type': 'review_summary_detailed',
-                'schema_version': '1.0',
-                'prompt_template': '''Perform a comprehensive analysis of user reviews for "{product_name}" by {brand} (UPC: {upc_code}).
+                "name": "review_summary_detailed",
+                "description": "Detailed review analysis with structured JSON output",
+                "query_type": "review_summary_detailed",
+                "schema_version": "1.0",
+                "prompt_template": """Perform a comprehensive analysis of user reviews for "{product_name}" by {brand} (UPC: {upc_code}).
 
 You MUST respond with ONLY valid JSON in this exact format:
 
@@ -61,15 +61,15 @@ Include in your analysis:
 - Quality consistency across reviews
 - Value for money assessment
 - Who this product is best suited for
-- Long-term durability or performance mentions''',
-                'is_active': False  # Not active by default
+- Long-term durability or performance mentions""",
+                "is_active": False,  # Not active by default
             },
             {
-                'name': 'product_safety',
-                'description': 'Safety and ingredient analysis with structured JSON output',
-                'query_type': 'safety_analysis',
-                'schema_version': '1.0',
-                'prompt_template': '''Analyze the safety profile and ingredients of "{product_name}" by {brand} (UPC: {upc_code}).
+                "name": "product_safety",
+                "description": "Safety and ingredient analysis with structured JSON output",
+                "query_type": "safety_analysis",
+                "schema_version": "1.0",
+                "prompt_template": """Analyze the safety profile and ingredients of "{product_name}" by {brand} (UPC: {upc_code}).
 
 You MUST respond with ONLY valid JSON in this exact format:
 
@@ -94,36 +94,32 @@ Instructions:
 - allergens: Common allergens (nuts, dairy, gluten, etc.)
 - certifications: Safety certifications, organic labels, etc.
 - recalls: Recent safety recalls if any
-- confidence: Based on available safety data''',
-                'is_active': False  # Not active by default
+- confidence: Based on available safety data""",
+                "is_active": False,  # Not active by default
             },
         ]
-        
+
         created_count = 0
         updated_count = 0
-        
+
         for prompt_data in prompts:
             prompt, created = LLMPrompt.objects.update_or_create(
-                name=prompt_data['name'],
-                defaults=prompt_data
+                name=prompt_data["name"], defaults=prompt_data
             )
-            
+
             if created:
                 created_count += 1
                 self.stdout.write(
-                    self.style.SUCCESS(f'✓ Created prompt: {prompt.name}')
+                    self.style.SUCCESS(f"✓ Created prompt: {prompt.name}")
                 )
             else:
                 updated_count += 1
                 self.stdout.write(
-                    self.style.WARNING(f'→ Updated prompt: {prompt.name}')
+                    self.style.WARNING(f"→ Updated prompt: {prompt.name}")
                 )
-        
+
         self.stdout.write(
             self.style.SUCCESS(
-                f'\nSuccessfully seeded {created_count} new and updated {updated_count} existing prompts'
+                f"\nSuccessfully seeded {created_count} new and updated {updated_count} existing prompts"
             )
         )
-
-
-

@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('api', '0002_product_delete_de_product'),
+        ("api", "0002_product_delete_de_product"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='product',
-            name='de_product_data',
+            model_name="product",
+            name="de_product_data",
             field=models.JSONField(blank=True, null=True),
         ),
     ]

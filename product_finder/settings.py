@@ -26,17 +26,17 @@ env = environ.Env(
 )
 
 # Read .env file
-environ.Env.read_env(BASE_DIR / '.env')
+environ.Env.read_env(BASE_DIR / ".env")
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env('SECRET_KEY')
+SECRET_KEY = env("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env.bool('DEBUG', default=True)
+DEBUG = env.bool("DEBUG", default=True)
 
 # Allow requests from local network
 # In DEBUG mode, use wildcard to allow all hosts for local network access
@@ -44,18 +44,18 @@ DEBUG = env.bool('DEBUG', default=True)
 if DEBUG:
     # Allow all hosts in DEBUG mode for local network access
     # This enables requests from other devices/apps on your local network
-    ALLOWED_HOSTS = ['*']
+    ALLOWED_HOSTS = ["*"]
 else:
     # In production, use environment variable or default to localhost
-    default_hosts = ['localhost', '127.0.0.1']
-    ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=default_hosts)
+    default_hosts = ["localhost", "127.0.0.1"]
+    ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=default_hosts)
 
 # CSRF Configuration for Cloud Run
 # Trust X-Forwarded-Proto header from GCP load balancer
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # CSRF trusted origins for Cloud Run (will be set via environment in production)
-csrf_origins = env.list('CSRF_TRUSTED_ORIGINS', default=[])
+csrf_origins = env.list("CSRF_TRUSTED_ORIGINS", default=[])
 if csrf_origins:
     CSRF_TRUSTED_ORIGINS = csrf_origins
 
@@ -72,60 +72,63 @@ if not DEBUG:
 # Application definition
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'rest_framework',
-    'rest_framework_simplejwt',
-    'rest_framework_simplejwt.token_blacklist',
-    'api.apps.ApiConfig',
-    'graphene_django'
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "rest_framework",
+    "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist",
+    "api.apps.ApiConfig",
+    "graphene_django",
 ]
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # WhiteNoise for static files
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",  # WhiteNoise for static files
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = 'product_finder.urls'
+ROOT_URLCONF = "product_finder.urls"
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
             ],
         },
     },
 ]
 
-WSGI_APPLICATION = 'product_finder.wsgi.application'
+WSGI_APPLICATION = "product_finder.wsgi.application"
 
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    'default': env.db('DATABASE_URL', default='postgresql://postgres:postgres@localhost:6000/product_finder_dev')
+    "default": env.db(
+        "DATABASE_URL",
+        default="postgresql://postgres:postgres@localhost:6000/product_finder_dev",
+    )
 }
 
 # Test database override
-DATABASES['default']['TEST'] = {
-    'NAME': 'product_finder_test',
+DATABASES["default"]["TEST"] = {
+    "NAME": "product_finder_test",
 }
 
 
@@ -134,16 +137,16 @@ DATABASES['default']['TEST'] = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
 
@@ -151,9 +154,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = 'America/Toronto'
+TIME_ZONE = "America/Toronto"
 
 USE_I18N = True
 
@@ -163,8 +166,8 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # WhiteNoise configuration for efficient static file serving
 STORAGES = {
@@ -179,32 +182,32 @@ STORAGES = {
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 # Logging configuration
 # https://docs.djangoproject.com/en/5.2/topics/logging/
 
 # Determine log level from environment or default based on DEBUG mode
-log_level = env('LOG_LEVEL', default='DEBUG' if DEBUG else 'INFO')
+log_level = env("LOG_LEVEL", default="DEBUG" if DEBUG else "INFO")
 
 LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
-            'style': '{',
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
+            "style": "{",
         },
-        'simple': {
-            'format': '{levelname} {asctime} {message}',
-            'style': '{',
+        "simple": {
+            "format": "{levelname} {asctime} {message}",
+            "style": "{",
         },
     },
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-            'formatter': 'simple',
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "simple",
         },
         # Optional: File handler for production
         # Uncomment and configure if you want file-based logging
@@ -216,31 +219,31 @@ LOGGING = {
         #     'formatter': 'verbose',
         # },
     },
-    'root': {
-        'handlers': ['console'],
-        'level': log_level,
+    "root": {
+        "handlers": ["console"],
+        "level": log_level,
     },
-    'loggers': {
-        'django': {
-            'handlers': ['console'],
-            'level': log_level,
-            'propagate': False,
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": log_level,
+            "propagate": False,
         },
-        'django.request': {
-            'handlers': ['console'],
-            'level': 'ERROR' if not DEBUG else 'DEBUG',
-            'propagate': False,
+        "django.request": {
+            "handlers": ["console"],
+            "level": "ERROR" if not DEBUG else "DEBUG",
+            "propagate": False,
         },
         # Your application loggers
-        'api': {
-            'handlers': ['console'],
-            'level': log_level,
-            'propagate': False,
+        "api": {
+            "handlers": ["console"],
+            "level": log_level,
+            "propagate": False,
         },
-        'api.services': {
-            'handlers': ['console'],
-            'level': log_level,
-            'propagate': False,
+        "api.services": {
+            "handlers": ["console"],
+            "level": log_level,
+            "propagate": False,
         },
     },
 }
@@ -248,60 +251,66 @@ LOGGING = {
 
 # LLM Configuration
 LLM_CONFIG = {
-    'default_provider': env('DEFAULT_LLM_PROVIDER', default='perplexity'),
-    'cache_ttl_days': env.int('LLM_CACHE_TTL_DAYS', default=30),
-    'enable_caching': env.bool('LLM_ENABLE_CACHING', default=True),
-    'providers': {
-        'openai': {
-            'api_key': env('OPENAI_API_KEY', default=''),
-            'model': env('OPENAI_MODEL', default='gpt-4-turbo-preview'),
-            'max_tokens': env.int('OPENAI_MAX_TOKENS', default=500),
-            'temperature': env.float('OPENAI_TEMPERATURE', default=0.7),
+    "default_provider": env("DEFAULT_LLM_PROVIDER", default="perplexity"),
+    "cache_ttl_days": env.int("LLM_CACHE_TTL_DAYS", default=30),
+    "enable_caching": env.bool("LLM_ENABLE_CACHING", default=True),
+    "providers": {
+        "openai": {
+            "api_key": env("OPENAI_API_KEY", default=""),
+            "model": env("OPENAI_MODEL", default="gpt-4-turbo-preview"),
+            "max_tokens": env.int("OPENAI_MAX_TOKENS", default=500),
+            "temperature": env.float("OPENAI_TEMPERATURE", default=0.7),
         },
-        'perplexity': {
-            'api_key': env('PERPLEXITY_API_KEY', default=''),
-            'model': env('PERPLEXITY_MODEL', default='llama-3.1-sonar-large-128k-online'),
-            'max_tokens': env.int('PERPLEXITY_MAX_TOKENS', default=500),
-            'temperature': env.float('PERPLEXITY_TEMPERATURE', default=0.7),
-        }
-    }
+        "perplexity": {
+            "api_key": env("PERPLEXITY_API_KEY", default=""),
+            "model": env(
+                "PERPLEXITY_MODEL", default="llama-3.1-sonar-large-128k-online"
+            ),
+            "max_tokens": env.int("PERPLEXITY_MAX_TOKENS", default=500),
+            "temperature": env.float("PERPLEXITY_TEMPERATURE", default=0.7),
+        },
+    },
 }
 
 
 # DE Product API Configuration
 DE_PRODUCT_CONFIG = {
-    'base_url': env('DE_PRODUCT_API_BASE_URL', default=''),
-    'app_key': env('DE_PRODUCT_APP_KEY', default=''),
-    'auth_key': env('DE_PRODUCT_AUTH_KEY', default=''),
-    'field_names': env('DE_PRODUCT_FIELD_NAMES', default=''),
-    'language': env('DE_PRODUCT_LANGUAGE', default='en'),
+    "base_url": env("DE_PRODUCT_API_BASE_URL", default=""),
+    "app_key": env("DE_PRODUCT_APP_KEY", default=""),
+    "auth_key": env("DE_PRODUCT_AUTH_KEY", default=""),
+    "field_names": env("DE_PRODUCT_FIELD_NAMES", default=""),
+    "language": env("DE_PRODUCT_LANGUAGE", default="en"),
 }
 
 
 # Django REST Framework Configuration
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
     ],
 }
 
 
 # Simple JWT Configuration
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=env.int('JWT_ACCESS_TOKEN_LIFETIME', default=60)),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=env.int('JWT_REFRESH_TOKEN_LIFETIME', default=7)),
-    'ROTATE_REFRESH_TOKENS': True,
-    'BLACKLIST_AFTER_ROTATION': True,
-    'UPDATE_LAST_LOGIN': True,
-    'ALGORITHM': 'HS256',
-    'SIGNING_KEY': env('JWT_SIGNING_KEY', default=SECRET_KEY),
-    'AUTH_HEADER_TYPES': ('Bearer',),
-    'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
-    'USER_ID_FIELD': 'id',
-    'USER_ID_CLAIM': 'user_id',
-    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
-    'TOKEN_TYPE_CLAIM': 'token_type',
+    "ACCESS_TOKEN_LIFETIME": timedelta(
+        minutes=env.int("JWT_ACCESS_TOKEN_LIFETIME", default=60)
+    ),
+    "REFRESH_TOKEN_LIFETIME": timedelta(
+        days=env.int("JWT_REFRESH_TOKEN_LIFETIME", default=7)
+    ),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "UPDATE_LAST_LOGIN": True,
+    "ALGORITHM": "HS256",
+    "SIGNING_KEY": env("JWT_SIGNING_KEY", default=SECRET_KEY),
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    "AUTH_HEADER_NAME": "HTTP_AUTHORIZATION",
+    "USER_ID_FIELD": "id",
+    "USER_ID_CLAIM": "user_id",
+    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
+    "TOKEN_TYPE_CLAIM": "token_type",
 }
