@@ -66,12 +66,6 @@ jobs:
           echo "url=$URL" >> $GITHUB_OUTPUT
           echo "Deployed to: $URL"
 
-      - name: Run database migrations
-        run: |
-          # Run migrations using Cloud Run Jobs or gcloud run jobs
-          # This is a placeholder - migrations are run on container startup via entrypoint
-          echo "Migrations will run automatically on container startup"
-
       - name: Deployment summary
         run: |
           echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY

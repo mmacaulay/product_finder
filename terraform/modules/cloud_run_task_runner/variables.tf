@@ -62,12 +62,6 @@ variable "cloudsql_enable_volume" {
   default     = false
 }
 
-variable "vpc_connector" {
-  type        = string
-  description = "Optional VPC Access Connector for private IP DB."
-  default     = null
-}
-
 variable "cpu" {
   type    = string
   default = "1"

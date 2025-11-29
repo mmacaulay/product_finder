@@ -64,15 +64,6 @@ resource "google_cloud_run_v2_job" "task_runner" {
         }
       }
 
-      # VPC Connector (for private IP DB)
-      dynamic "vpc_access" {
-        for_each = var.vpc_connector != null ? [1] : []
-        content {
-          connector = var.vpc_connector
-          egress    = "PRIVATE_RANGES_ONLY"
-        }
-      }
-
       service_account = var.service_account
       max_retries     = var.max_retries
       timeout         = var.timeout

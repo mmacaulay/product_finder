@@ -117,7 +117,8 @@ WSGI_APPLICATION = "product_finder.wsgi.application"
 # Keep minimal DB config for Django to work (some apps still expect it)
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.dummy",
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
     }
 }
 
@@ -234,6 +235,9 @@ LOGGING = {
             "handlers": ["console"],
             "level": log_level,
             "propagate": False,
+        },
+        "django.utils.autoreload": {
+            "level": "INFO",
         },
     },
 }
