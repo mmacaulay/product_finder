@@ -8,7 +8,6 @@ from api.tests.fixtures import (
 )
 from graphene.test import Client
 from api.graphql.schema import schema
-from api.dao import ProductDAO
 from unittest.mock import MagicMock
 import responses
 

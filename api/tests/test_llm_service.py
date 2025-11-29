@@ -280,18 +280,6 @@ class LLMServiceTestCase(FirestoreTestCase):
             "created_at": timezone.now(),
             "updated_at": timezone.now(),
         }
-        result2_data = {
-            "id": "123456789012_test_prompt_openai",
-            "product_upc": "123456789012",
-            "prompt_name": "test_prompt",
-            "provider": "openai",
-            "query_input": "Test query",
-            "result": {"summary": "Result 2"},
-            "metadata": {},
-            "is_stale": False,
-            "created_at": timezone.now(),
-            "updated_at": timezone.now(),
-        }
 
         # Mock Firestore query to return result with perplexity provider
         mock_doc1 = MagicMock()
@@ -398,5 +386,3 @@ class LLMServiceTestCase(FirestoreTestCase):
         self.assertEqual(stats["fresh"], 1)
         self.assertEqual(stats["stale"], 1)
         self.assertTrue(stats["cache_enabled"])
-
-
