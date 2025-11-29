@@ -199,7 +199,7 @@ resource "google_cloud_run_v2_service" "app" {
 
       startup_probe {
         http_get {
-          path = "/graphql/" # GraphQL endpoint as health check
+          path = "/api/health/"
         }
         initial_delay_seconds = 10
         timeout_seconds       = 3
@@ -209,7 +209,7 @@ resource "google_cloud_run_v2_service" "app" {
 
       liveness_probe {
         http_get {
-          path = "/graphql/"
+          path = "/api/health/"
         }
         initial_delay_seconds = 30
         timeout_seconds       = 3
