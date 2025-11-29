@@ -2,7 +2,7 @@
 Tests for LLM pricing calculations.
 """
 
-from django.test import TestCase
+from django.test import SimpleTestCase
 from api.services.llm.pricing import (
     ModelPricing,
     OpenAIPricing,
@@ -10,7 +10,7 @@ from api.services.llm.pricing import (
 )
 
 
-class ModelPricingTestCase(TestCase):
+class ModelPricingTestCase(SimpleTestCase):
     """Test the ModelPricing dataclass"""
 
     def test_calculate_cost(self):
@@ -79,7 +79,7 @@ class ModelPricingTestCase(TestCase):
         self.assertAlmostEqual(cost, 0.005, places=6)
 
 
-class OpenAIPricingTestCase(TestCase):
+class OpenAIPricingTestCase(SimpleTestCase):
     """Test OpenAI pricing configuration"""
 
     def test_gpt5_nano_pricing(self):
@@ -164,7 +164,7 @@ class OpenAIPricingTestCase(TestCase):
         self.assertAlmostEqual(cost, 0.0325, places=6)
 
 
-class PerplexityPricingTestCase(TestCase):
+class PerplexityPricingTestCase(SimpleTestCase):
     """Test Perplexity pricing configuration"""
 
     def test_sonar_pricing(self):
@@ -238,7 +238,7 @@ class PerplexityPricingTestCase(TestCase):
         self.assertAlmostEqual(cost, 0.030, places=6)
 
 
-class CostComparisonTestCase(TestCase):
+class CostComparisonTestCase(SimpleTestCase):
     """Test cost comparisons between providers and models"""
 
     def test_gpt5_nano_vs_gpt5_mini(self):
@@ -302,7 +302,7 @@ class CostComparisonTestCase(TestCase):
         self.assertLess(cost_sonar, cost_sonar_pro)
 
 
-class RealisticUsageTestCase(TestCase):
+class RealisticUsageTestCase(SimpleTestCase):
     """Test with realistic usage patterns"""
 
     def test_review_summary_cost_gpt5_nano(self):
@@ -403,7 +403,7 @@ class RealisticUsageTestCase(TestCase):
         self.assertLess(monthly_cost, 1.00)  # Less than $1/month with GPT-5 Nano!
 
 
-class EdgeCaseTestCase(TestCase):
+class EdgeCaseTestCase(SimpleTestCase):
     """Test edge cases and error conditions"""
 
     def test_zero_cost_models(self):

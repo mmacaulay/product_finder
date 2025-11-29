@@ -114,19 +114,22 @@ class LLMServiceTestCase(FirestoreTestCase):
         # Verify provider was called
         mock_provider.query.assert_called_once()
 
-        # Verify result was cached
-        cached = LLMQueryResult.objects.filter(
-            product=self.product, prompt=self.prompt, provider="perplexity"
-        ).first()
+        # Verify result was cached in Firestore
+        self.mock_firestore.collection.return_value.document.return_value.set.assert_called_once()
+        call_args = (
+            self.mock_firestore.collection.return_value.document.return_value.set.call_args
+        )
+        cached_data = call_args[0][0]
 
-        self.assertIsNotNone(cached)
-        self.assertIsInstance(cached.result, dict)
-        self.assertEqual(cached.result["sentiment"], "positive")
-        self.assertFalse(cached.is_stale)
+        self.assertIsInstance(cached_data["result"], dict)
+        self.assertEqual(cached_data["result"]["sentiment"], "positive")
+        self.assertFalse(cached_data["is_stale"])
 
     @patch("api.services.llm.llm_service.PerplexityProvider")
     def test_get_product_insight_cache_hit(self, mock_provider_class):
         """Test getting insight when result is cached (cache hit)"""
+        from django.utils import timezone
+
         # Pre-populate cache with structured data
         cached_result = {
             "sentiment": "positive",
@@ -137,13 +140,27 @@ class LLMServiceTestCase(FirestoreTestCase):
             "key_themes": ["quality"],
             "confidence": "high",
         }
-        LLMQueryResult.objects.create(
-            product=self.product,
-            prompt=self.prompt,
-            provider="perplexity",
-            query_input="Test query",
-            result=cached_result,
-            metadata={},
+        cached_doc_data = {
+            "id": "123456789012_test_prompt_perplexity",
+            "product_upc": "123456789012",
+            "prompt_name": "test_prompt",
+            "provider": "perplexity",
+            "query_input": "Test query",
+            "result": cached_result,
+            "metadata": {},
+            "is_stale": False,
+            "created_at": timezone.now(),
+            "updated_at": timezone.now(),
+        }
+
+        # Mock Firestore to return cached result
+        mock_doc = MagicMock()
+        mock_doc.exists = True
+        mock_doc.to_dict.return_value = cached_doc_data
+        mock_doc.id = cached_doc_data["id"]
+
+        self.mock_firestore.collection.return_value.document.return_value.get.return_value = (
+            mock_doc
         )
 
         # Setup mock provider (should NOT be called)
@@ -172,6 +189,8 @@ class LLMServiceTestCase(FirestoreTestCase):
         self, mock_settings, mock_provider_class
     ):
         """Test force refresh bypasses cache"""
+        from django.utils import timezone
+
         # Mock settings
         mock_settings.LLM_CONFIG = {
             "default_provider": "perplexity",
@@ -197,13 +216,27 @@ class LLMServiceTestCase(FirestoreTestCase):
             "key_themes": [],
             "confidence": "medium",
         }
-        LLMQueryResult.objects.create(
-            product=self.product,
-            prompt=self.prompt,
-            provider="perplexity",
-            query_input="Test query",
-            result=cached_result,
-            metadata={},
+        cached_doc_data = {
+            "id": "123456789012_test_prompt_perplexity",
+            "product_upc": "123456789012",
+            "prompt_name": "test_prompt",
+            "provider": "perplexity",
+            "query_input": "Test query",
+            "result": cached_result,
+            "metadata": {},
+            "is_stale": False,
+            "created_at": timezone.now(),
+            "updated_at": timezone.now(),
+        }
+
+        # Mock Firestore to return cached result
+        mock_doc = MagicMock()
+        mock_doc.exists = True
+        mock_doc.to_dict.return_value = cached_doc_data
+        mock_doc.id = cached_doc_data["id"]
+
+        self.mock_firestore.collection.return_value.document.return_value.get.return_value = (
+            mock_doc
         )
 
         # Setup mock provider
@@ -232,23 +265,50 @@ class LLMServiceTestCase(FirestoreTestCase):
 
     def test_invalidate_cache(self):
         """Test cache invalidation"""
-        # Create some cached results with structured data
-        result1 = LLMQueryResult.objects.create(
-            product=self.product,
-            prompt=self.prompt,
-            provider="perplexity",
-            query_input="Test query",
-            result={"summary": "Result 1"},
-            metadata={},
-        )
+        from django.utils import timezone
 
-        result2 = LLMQueryResult.objects.create(
-            product=self.product,
-            prompt=self.prompt,
-            provider="openai",
-            query_input="Test query",
-            result={"summary": "Result 2"},
-            metadata={},
+        # Mock cached results with structured data
+        result1_data = {
+            "id": "123456789012_test_prompt_perplexity",
+            "product_upc": "123456789012",
+            "prompt_name": "test_prompt",
+            "provider": "perplexity",
+            "query_input": "Test query",
+            "result": {"summary": "Result 1"},
+            "metadata": {},
+            "is_stale": False,
+            "created_at": timezone.now(),
+            "updated_at": timezone.now(),
+        }
+        result2_data = {
+            "id": "123456789012_test_prompt_openai",
+            "product_upc": "123456789012",
+            "prompt_name": "test_prompt",
+            "provider": "openai",
+            "query_input": "Test query",
+            "result": {"summary": "Result 2"},
+            "metadata": {},
+            "is_stale": False,
+            "created_at": timezone.now(),
+            "updated_at": timezone.now(),
+        }
+
+        # Mock Firestore query to return result with perplexity provider
+        mock_doc1 = MagicMock()
+        mock_doc1.to_dict.return_value = result1_data
+        mock_doc1.id = result1_data["id"]
+        mock_doc1.reference = MagicMock()
+
+        # Mock the query chain for get_by_product (single where)
+        self.mock_firestore.collection.return_value.where.return_value.stream.return_value = [
+            mock_doc1
+        ]
+
+        # Mock the document.get() for mark_stale check
+        mock_doc_exists = MagicMock()
+        mock_doc_exists.exists = True
+        self.mock_firestore.collection.return_value.document.return_value.get.return_value = (
+            mock_doc_exists
         )
 
         # Invalidate cache for perplexity only
@@ -257,11 +317,15 @@ class LLMServiceTestCase(FirestoreTestCase):
 
         self.assertEqual(count, 1)
 
-        # Check result1 is stale, result2 is not
-        result1.refresh_from_db()
-        result2.refresh_from_db()
-        self.assertTrue(result1.is_stale)
-        self.assertFalse(result2.is_stale)
+        # Verify Firestore update was called to mark as stale
+        # Note: mark_stale calls collection.document(doc_id).update()
+        update_calls = (
+            self.mock_firestore.collection.return_value.document.return_value.update.call_args_list
+        )
+        self.assertEqual(len(update_calls), 1)
+        # Check that is_stale was set to True
+        self.assertIn("is_stale", update_calls[0][0][0])
+        self.assertTrue(update_calls[0][0][0]["is_stale"])
 
     def test_prompt_rendering(self):
         """Test prompt template rendering with product data"""
@@ -273,35 +337,59 @@ class LLMServiceTestCase(FirestoreTestCase):
 
     def test_missing_prompt(self):
         """Test error when no active prompt exists"""
+        # Mock Firestore to return no prompts for this query_type
+        self.mock_firestore.collection.return_value.where.return_value.where.return_value.stream.return_value = (
+            []
+        )
+
         service = LLMService()
 
-        with self.assertRaises(LLMPrompt.DoesNotExist):
+        with self.assertRaises(ValueError):
             service.get_product_insight(
                 product=self.product, query_type="nonexistent_query_type"
             )
 
     def test_get_cache_stats(self):
         """Test cache statistics"""
-        # Create some cached results with structured data
-        LLMQueryResult.objects.create(
-            product=self.product,
-            prompt=self.prompt,
-            provider="perplexity",
-            query_input="Test",
-            result={"summary": "Result 1"},
-            is_stale=False,
-            metadata={},
-        )
+        from django.utils import timezone
 
-        LLMQueryResult.objects.create(
-            product=self.product,
-            prompt=self.prompt,
-            provider="openai",
-            query_input="Test",
-            result={"summary": "Result 2"},
-            is_stale=True,
-            metadata={},
-        )
+        # Mock cached results
+        result1 = {
+            "id": "123456789012_test_prompt_perplexity",
+            "product_upc": "123456789012",
+            "prompt_name": "test_prompt",
+            "provider": "perplexity",
+            "query_input": "Test",
+            "result": {"summary": "Result 1"},
+            "is_stale": False,
+            "metadata": {},
+            "created_at": timezone.now(),
+        }
+        result2 = {
+            "id": "123456789012_test_prompt_openai",
+            "product_upc": "123456789012",
+            "prompt_name": "test_prompt",
+            "provider": "openai",
+            "query_input": "Test",
+            "result": {"summary": "Result 2"},
+            "is_stale": True,
+            "metadata": {},
+            "created_at": timezone.now(),
+        }
+
+        # Mock Firestore query to return these results
+        mock_doc1 = MagicMock()
+        mock_doc1.to_dict.return_value = result1
+        mock_doc1.id = result1["id"]
+
+        mock_doc2 = MagicMock()
+        mock_doc2.to_dict.return_value = result2
+        mock_doc2.id = result2["id"]
+
+        self.mock_firestore.collection.return_value.where.return_value.stream.return_value = [
+            mock_doc1,
+            mock_doc2,
+        ]
 
         service = LLMService()
         stats = service.get_cache_stats(product=self.product)

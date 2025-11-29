@@ -120,7 +120,7 @@ class GraphQLQueryTest(FullMockedTestCase):
         """Test querying a product by ID"""
         query = f"""
             query {{
-                productById(id: {self.product1.id}) {{
+                productById(id: "{self.product1_data['id']}") {{
                     id
                     upcCode
                     name
@@ -134,6 +134,13 @@ class GraphQLQueryTest(FullMockedTestCase):
 
     def test_query_nonexistent_upc(self):
         """Test querying with non-existent UPC returns None when API returns empty"""
+        # Reset mock to return non-existent for this specific UPC
+        mock_doc_not_exist = MagicMock()
+        mock_doc_not_exist.exists = False
+        self.mock_firestore.collection.return_value.document.return_value.get.return_value = (
+            mock_doc_not_exist
+        )
+
         # Mock API to return empty response
         responses.add(
             responses.GET,
@@ -213,6 +220,13 @@ class GraphQLQueryTest(FullMockedTestCase):
 
     def test_query_product_by_upc_api_error(self):
         """Test querying a product when API returns an error"""
+        # Reset mock to return non-existent for this UPC
+        mock_doc_not_exist = MagicMock()
+        mock_doc_not_exist.exists = False
+        self.mock_firestore.collection.return_value.document.return_value.get.return_value = (
+            mock_doc_not_exist
+        )
+
         # Mock API error response
         responses.add(
             responses.GET,
@@ -234,6 +248,13 @@ class GraphQLQueryTest(FullMockedTestCase):
 
     def test_query_product_by_upc_api_empty_response(self):
         """Test querying a product when API returns empty results"""
+        # Reset mock to return non-existent for this UPC
+        mock_doc_not_exist = MagicMock()
+        mock_doc_not_exist.exists = False
+        self.mock_firestore.collection.return_value.document.return_value.get.return_value = (
+            mock_doc_not_exist
+        )
+
         # Mock API empty response
         responses.add(
             responses.GET,

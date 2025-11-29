@@ -12,8 +12,6 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import environ
-from datetime import timedelta
-
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -72,9 +70,11 @@ if not DEBUG:
 # Application definition
 
 INSTALLED_APPS = [
+    "django.contrib.auth",  # Required by contenttypes
+    "django.contrib.contenttypes",  # Required by graphene_django
+    "django.contrib.sessions",  # Required by auth middleware
+    "django.contrib.messages",  # Required by messages middleware
     "django.contrib.staticfiles",
-    "django.contrib.messages",
-    "rest_framework",
     "graphene_django",
     "api.apps.ApiConfig",
 ]
@@ -273,17 +273,10 @@ DE_PRODUCT_CONFIG = {
 }
 
 
-# Django REST Framework Configuration
-REST_FRAMEWORK = {
-    "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.AllowAny",
-    ],
-}
-# Note: Authentication is now handled via Firebase Auth tokens in views/GraphQL
-
-
 # Firestore Configuration
-FIRESTORE_PROJECT_ID = env("FIRESTORE_PROJECT_ID", default=env("GOOGLE_CLOUD_PROJECT", default=""))
+FIRESTORE_PROJECT_ID = env(
+    "FIRESTORE_PROJECT_ID", default=env("GOOGLE_CLOUD_PROJECT", default="")
+)
 FIRESTORE_EMULATOR_HOST = env("FIRESTORE_EMULATOR_HOST", default=None)
 
 # Firebase Auth Configuration
