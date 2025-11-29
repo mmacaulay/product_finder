@@ -24,9 +24,7 @@ def _init_firebase():
     else:
         cred = credentials.ApplicationDefault()
 
-    firebase_admin.initialize_app(
-        cred, {"projectId": settings.FIRESTORE_PROJECT_ID}
-    )
+    firebase_admin.initialize_app(cred, {"projectId": settings.FIRESTORE_PROJECT_ID})
     _initialized = True
 
 

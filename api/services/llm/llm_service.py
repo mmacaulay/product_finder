@@ -218,7 +218,9 @@ class LLMService:
             ttl_days = self.config["cache_ttl_days"]
             cutoff_date = timezone.now() - timedelta(days=ttl_days)
             old_cached = sum(
-                1 for r in results if r.get("created_at") and r["created_at"] < cutoff_date
+                1
+                for r in results
+                if r.get("created_at") and r["created_at"] < cutoff_date
             )
 
             return {
