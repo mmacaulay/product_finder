@@ -107,8 +107,12 @@ WSGI_APPLICATION = "product_finder.wsgi.application"
 
 # No longer using PostgreSQL - migrated to Firestore
 # Keep minimal DB config for Django to work (some apps still expect it)
-DATABASES = {}
-
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": ":memory:",
+    }
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
