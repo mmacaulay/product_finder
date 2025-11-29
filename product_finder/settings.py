@@ -70,9 +70,6 @@ if not DEBUG:
 # Application definition
 
 INSTALLED_APPS = [
-    "django.contrib.auth",  # Required by contenttypes
-    "django.contrib.contenttypes",  # Required by graphene_django
-    "django.contrib.sessions",  # Required by auth middleware
     "django.contrib.messages",  # Required by messages middleware
     "django.contrib.staticfiles",
     "graphene_django",
@@ -82,11 +79,8 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",  # WhiteNoise for static files
-    "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
-    "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
@@ -100,8 +94,6 @@ TEMPLATES = [
         "OPTIONS": {
             "context_processors": [
                 "django.template.context_processors.request",
-                "django.contrib.auth.context_processors.auth",
-                "django.contrib.messages.context_processors.messages",
             ],
         },
     },
@@ -115,12 +107,7 @@ WSGI_APPLICATION = "product_finder.wsgi.application"
 
 # No longer using PostgreSQL - migrated to Firestore
 # Keep minimal DB config for Django to work (some apps still expect it)
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
-}
+DATABASES = {}
 
 
 # Password validation
