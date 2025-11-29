@@ -26,3 +26,9 @@ dev = [
     "pytest-django>=4.11.1",
     "ruff>=0.14.6",
 ]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "product_finder.settings"
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]

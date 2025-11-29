@@ -1,10 +1,10 @@
-from django.test import TestCase
+from django.test import SimpleTestCase
 from unittest.mock import patch
 from api.tests.firestore_mocks import create_mock_firestore, create_mock_firebase_user
 import responses
 
 
-class FirestoreTestCase(TestCase):
+class FirestoreTestCase(SimpleTestCase):
     """Base test class with Firestore mocking."""
 
     def setUp(self):
@@ -38,7 +38,7 @@ class FirebaseAuthTestCase(FirestoreTestCase):
         super().tearDown()
 
 
-class MockedAPITestCase(TestCase):
+class MockedAPITestCase(SimpleTestCase):
     """Base test case that automatically mocks all HTTP requests"""
 
     def setUp(self):
