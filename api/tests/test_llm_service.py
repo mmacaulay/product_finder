@@ -2,31 +2,42 @@
 Tests for LLM service functionality.
 """
 
-from django.test import TestCase
-from django.db import IntegrityError
-from unittest.mock import Mock, patch
-from api.models import Product, LLMPrompt, LLMQueryResult
+from unittest.mock import Mock, patch, MagicMock
+from api.tests.base import FirestoreTestCase
 from api.services.llm import LLMService
 
 
-class LLMServiceTestCase(TestCase):
+class LLMServiceTestCase(FirestoreTestCase):
     """Test the LLMService orchestrator"""
 
     def setUp(self):
         """Set up test fixtures"""
-        # Create a test product
-        self.product = Product.objects.create(
-            upc_code="123456789012", name="Test Product", brand="Test Brand"
-        )
+        super().setUp()
 
-        # Create a test prompt
-        self.prompt = LLMPrompt.objects.create(
-            name="test_prompt",
-            query_type="review_summary",
-            prompt_template="Summarize reviews for {product_name} by {brand}",
-            schema_version="1.0",
-            is_active=True,
-        )
+        # Create test product data (as dict, not ORM object)
+        self.product = {
+            "id": "123456789012",
+            "upc_code": "123456789012",
+            "name": "Test Product",
+            "brand": "Test Brand",
+            "image_url": None,
+            "created_at": None,
+            "updated_at": None,
+        }
+
+        # Create test prompt data (as dict, not ORM object)
+        self.prompt = {
+            "id": "test_prompt",
+            "name": "test_prompt",
+            "query_type": "review_summary",
+            "prompt_template": "Summarize reviews for {name} by {brand}",
+            "schema_version": "1.0",
+            "is_active": True,
+            "description": "Test prompt",
+            "response_schema": None,
+            "created_at": None,
+            "updated_at": None,
+        }
 
         # Mock LLM response (now structured JSON)
         self.mock_llm_response = {
@@ -48,6 +59,20 @@ class LLMServiceTestCase(TestCase):
                 "json_mode_enabled": True,
             },
         }
+
+        # Setup Firestore mocks for prompts
+        mock_prompt_doc = MagicMock()
+        mock_prompt_doc.exists = True
+        mock_prompt_doc.to_dict.return_value = self.prompt
+        mock_prompt_doc.id = "test_prompt"
+
+        # Configure mock to return prompt when querying
+        def mock_stream_prompts():
+            return [mock_prompt_doc]
+
+        self.mock_firestore.collection.return_value.where.return_value.where.return_value.stream.return_value = (
+            mock_stream_prompts()
+        )
 
     @patch("api.services.llm.llm_service.PerplexityProvider")
     @patch("api.services.llm.llm_service.settings")
