@@ -46,21 +46,11 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 # Copy application code
 COPY --chown=appuser:appuser . .
 
-# Create staticfiles directory with proper permissions
-RUN mkdir -p /app/staticfiles && chown -R appuser:appuser /app/staticfiles
-
-# Copy entrypoint script and make it executable
-COPY --chown=appuser:appuser docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
-
 # Switch to non-root user
 USER appuser
 
 # Expose port
 EXPOSE 8080
-
-# Set entrypoint
-ENTRYPOINT ["/docker-entrypoint.sh"]
 
 # Default command (can be overridden)
 CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "2", "--threads", "4", "--timeout", "60", "product_finder.wsgi:application"]

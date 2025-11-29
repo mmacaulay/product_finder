@@ -1,3 +1,6 @@
-# Firebase Auth is now used instead of JWT
-# Authentication is handled by firebase_auth.py and enforced in GraphQL view
-urlpatterns = []
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path("health/", views.health_check, name="health_check"),
+]
