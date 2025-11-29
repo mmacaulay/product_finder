@@ -12,8 +12,6 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import environ
-from datetime import timedelta
-
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -72,17 +70,13 @@ if not DEBUG:
 # Application definition
 
 INSTALLED_APPS = [
-    "django.contrib.admin",
-    "django.contrib.auth",
-    "django.contrib.contenttypes",
-    "django.contrib.sessions",
-    "django.contrib.messages",
+    "django.contrib.auth",  # Required by contenttypes
+    "django.contrib.contenttypes",  # Required by graphene_django
+    "django.contrib.sessions",  # Required by auth middleware
+    "django.contrib.messages",  # Required by messages middleware
     "django.contrib.staticfiles",
-    "rest_framework",
-    "rest_framework_simplejwt",
-    "rest_framework_simplejwt.token_blacklist",
-    "api.apps.ApiConfig",
     "graphene_django",
+    "api.apps.ApiConfig",
 ]
 
 MIDDLEWARE = [
@@ -119,16 +113,12 @@ WSGI_APPLICATION = "product_finder.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+# No longer using PostgreSQL - migrated to Firestore
+# Keep minimal DB config for Django to work (some apps still expect it)
 DATABASES = {
-    "default": env.db(
-        "DATABASE_URL",
-        default="postgresql://postgres:postgres@localhost:6000/product_finder_dev",
-    )
-}
-
-# Test database override
-DATABASES["default"]["TEST"] = {
-    "NAME": "product_finder_test",
+    "default": {
+        "ENGINE": "django.db.backends.dummy",
+    }
 }
 
 
@@ -283,34 +273,11 @@ DE_PRODUCT_CONFIG = {
 }
 
 
-# Django REST Framework Configuration
-REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
-    ],
-    "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.IsAuthenticated",
-    ],
-}
+# Firestore Configuration
+FIRESTORE_PROJECT_ID = env(
+    "FIRESTORE_PROJECT_ID", default=env("GOOGLE_CLOUD_PROJECT", default="")
+)
+FIRESTORE_EMULATOR_HOST = env("FIRESTORE_EMULATOR_HOST", default=None)
 
-
-# Simple JWT Configuration
-SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(
-        minutes=env.int("JWT_ACCESS_TOKEN_LIFETIME", default=60)
-    ),
-    "REFRESH_TOKEN_LIFETIME": timedelta(
-        days=env.int("JWT_REFRESH_TOKEN_LIFETIME", default=7)
-    ),
-    "ROTATE_REFRESH_TOKENS": True,
-    "BLACKLIST_AFTER_ROTATION": True,
-    "UPDATE_LAST_LOGIN": True,
-    "ALGORITHM": "HS256",
-    "SIGNING_KEY": env("JWT_SIGNING_KEY", default=SECRET_KEY),
-    "AUTH_HEADER_TYPES": ("Bearer",),
-    "AUTH_HEADER_NAME": "HTTP_AUTHORIZATION",
-    "USER_ID_FIELD": "id",
-    "USER_ID_CLAIM": "user_id",
-    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
-    "TOKEN_TYPE_CLAIM": "token_type",
-}
+# Firebase Auth Configuration
+FIREBASE_AUTH_EMULATOR_HOST = env("FIREBASE_AUTH_EMULATOR_HOST", default=None)

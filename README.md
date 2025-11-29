@@ -54,9 +54,6 @@ Required environment variables:
 SECRET_KEY=your-secret-key
 DEBUG=True
 
-# Database
-DATABASE_URL=postgresql://postgres:postgres@localhost:6000/product_finder_dev
-
 # JWT Authentication (optional - defaults shown)
 JWT_ACCESS_TOKEN_LIFETIME=60  # minutes
 JWT_REFRESH_TOKEN_LIFETIME=7  # days
@@ -71,6 +68,11 @@ DE_PRODUCT_FIELD_NAMES=description,brand
 PERPLEXITY_API_KEY=pplx-your-key
 OPENAI_API_KEY=sk-your-key
 DEFAULT_LLM_PROVIDER=perplexity
+
+# Firebase emulators
+FIRESTORE_EMULATOR_HOST=localhost:8081
+FIREBASE_AUTH_EMULATOR_HOST=localhost:9099
+FIRESTORE_PROJECT_ID=demo-product-finder
 ```
 
 4. **Run migrations**
@@ -341,7 +343,7 @@ class ProductType(DjangoObjectType):
         provider=graphene.String(required=False),
         force_refresh=graphene.Boolean(required=False)
     )
-    
+
     def resolve_custom_analysis(self, info, provider=None, force_refresh=False):
         # Similar to resolve_review_summary
         ...
@@ -358,11 +360,11 @@ class MyProvider(BaseLLMProvider):
     def query(self, prompt, **kwargs):
         # Implement API call
         pass
-    
+
     def validate_credentials(self):
         # Test API key
         pass
-    
+
     @property
     def provider_name(self):
         return 'myprovider'

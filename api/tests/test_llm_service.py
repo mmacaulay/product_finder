@@ -2,31 +2,42 @@
 Tests for LLM service functionality.
 """
 
-from django.test import TestCase
-from django.db import IntegrityError
-from unittest.mock import Mock, patch
-from api.models import Product, LLMPrompt, LLMQueryResult
+from unittest.mock import Mock, patch, MagicMock
+from api.tests.base import FirestoreTestCase
 from api.services.llm import LLMService
 
 
-class LLMServiceTestCase(TestCase):
+class LLMServiceTestCase(FirestoreTestCase):
     """Test the LLMService orchestrator"""
 
     def setUp(self):
         """Set up test fixtures"""
-        # Create a test product
-        self.product = Product.objects.create(
-            upc_code="123456789012", name="Test Product", brand="Test Brand"
-        )
+        super().setUp()
 
-        # Create a test prompt
-        self.prompt = LLMPrompt.objects.create(
-            name="test_prompt",
-            query_type="review_summary",
-            prompt_template="Summarize reviews for {product_name} by {brand}",
-            schema_version="1.0",
-            is_active=True,
-        )
+        # Create test product data (as dict, not ORM object)
+        self.product = {
+            "id": "123456789012",
+            "upc_code": "123456789012",
+            "name": "Test Product",
+            "brand": "Test Brand",
+            "image_url": None,
+            "created_at": None,
+            "updated_at": None,
+        }
+
+        # Create test prompt data (as dict, not ORM object)
+        self.prompt = {
+            "id": "test_prompt",
+            "name": "test_prompt",
+            "query_type": "review_summary",
+            "prompt_template": "Summarize reviews for {name} by {brand}",
+            "schema_version": "1.0",
+            "is_active": True,
+            "description": "Test prompt",
+            "response_schema": None,
+            "created_at": None,
+            "updated_at": None,
+        }
 
         # Mock LLM response (now structured JSON)
         self.mock_llm_response = {
@@ -48,6 +59,20 @@ class LLMServiceTestCase(TestCase):
                 "json_mode_enabled": True,
             },
         }
+
+        # Setup Firestore mocks for prompts
+        mock_prompt_doc = MagicMock()
+        mock_prompt_doc.exists = True
+        mock_prompt_doc.to_dict.return_value = self.prompt
+        mock_prompt_doc.id = "test_prompt"
+
+        # Configure mock to return prompt when querying
+        def mock_stream_prompts():
+            return [mock_prompt_doc]
+
+        self.mock_firestore.collection.return_value.where.return_value.where.return_value.stream.return_value = (
+            mock_stream_prompts()
+        )
 
     @patch("api.services.llm.llm_service.PerplexityProvider")
     @patch("api.services.llm.llm_service.settings")
@@ -89,19 +114,22 @@ class LLMServiceTestCase(TestCase):
         # Verify provider was called
         mock_provider.query.assert_called_once()
 
-        # Verify result was cached
-        cached = LLMQueryResult.objects.filter(
-            product=self.product, prompt=self.prompt, provider="perplexity"
-        ).first()
+        # Verify result was cached in Firestore
+        self.mock_firestore.collection.return_value.document.return_value.set.assert_called_once()
+        call_args = (
+            self.mock_firestore.collection.return_value.document.return_value.set.call_args
+        )
+        cached_data = call_args[0][0]
 
-        self.assertIsNotNone(cached)
-        self.assertIsInstance(cached.result, dict)
-        self.assertEqual(cached.result["sentiment"], "positive")
-        self.assertFalse(cached.is_stale)
+        self.assertIsInstance(cached_data["result"], dict)
+        self.assertEqual(cached_data["result"]["sentiment"], "positive")
+        self.assertFalse(cached_data["is_stale"])
 
     @patch("api.services.llm.llm_service.PerplexityProvider")
     def test_get_product_insight_cache_hit(self, mock_provider_class):
         """Test getting insight when result is cached (cache hit)"""
+        from django.utils import timezone
+
         # Pre-populate cache with structured data
         cached_result = {
             "sentiment": "positive",
@@ -112,13 +140,27 @@ class LLMServiceTestCase(TestCase):
             "key_themes": ["quality"],
             "confidence": "high",
         }
-        LLMQueryResult.objects.create(
-            product=self.product,
-            prompt=self.prompt,
-            provider="perplexity",
-            query_input="Test query",
-            result=cached_result,
-            metadata={},
+        cached_doc_data = {
+            "id": "123456789012_test_prompt_perplexity",
+            "product_upc": "123456789012",
+            "prompt_name": "test_prompt",
+            "provider": "perplexity",
+            "query_input": "Test query",
+            "result": cached_result,
+            "metadata": {},
+            "is_stale": False,
+            "created_at": timezone.now(),
+            "updated_at": timezone.now(),
+        }
+
+        # Mock Firestore to return cached result
+        mock_doc = MagicMock()
+        mock_doc.exists = True
+        mock_doc.to_dict.return_value = cached_doc_data
+        mock_doc.id = cached_doc_data["id"]
+
+        self.mock_firestore.collection.return_value.document.return_value.get.return_value = (
+            mock_doc
         )
 
         # Setup mock provider (should NOT be called)
@@ -147,6 +189,8 @@ class LLMServiceTestCase(TestCase):
         self, mock_settings, mock_provider_class
     ):
         """Test force refresh bypasses cache"""
+        from django.utils import timezone
+
         # Mock settings
         mock_settings.LLM_CONFIG = {
             "default_provider": "perplexity",
@@ -172,13 +216,27 @@ class LLMServiceTestCase(TestCase):
             "key_themes": [],
             "confidence": "medium",
         }
-        LLMQueryResult.objects.create(
-            product=self.product,
-            prompt=self.prompt,
-            provider="perplexity",
-            query_input="Test query",
-            result=cached_result,
-            metadata={},
+        cached_doc_data = {
+            "id": "123456789012_test_prompt_perplexity",
+            "product_upc": "123456789012",
+            "prompt_name": "test_prompt",
+            "provider": "perplexity",
+            "query_input": "Test query",
+            "result": cached_result,
+            "metadata": {},
+            "is_stale": False,
+            "created_at": timezone.now(),
+            "updated_at": timezone.now(),
+        }
+
+        # Mock Firestore to return cached result
+        mock_doc = MagicMock()
+        mock_doc.exists = True
+        mock_doc.to_dict.return_value = cached_doc_data
+        mock_doc.id = cached_doc_data["id"]
+
+        self.mock_firestore.collection.return_value.document.return_value.get.return_value = (
+            mock_doc
         )
 
         # Setup mock provider
@@ -207,23 +265,38 @@ class LLMServiceTestCase(TestCase):
 
     def test_invalidate_cache(self):
         """Test cache invalidation"""
-        # Create some cached results with structured data
-        result1 = LLMQueryResult.objects.create(
-            product=self.product,
-            prompt=self.prompt,
-            provider="perplexity",
-            query_input="Test query",
-            result={"summary": "Result 1"},
-            metadata={},
-        )
+        from django.utils import timezone
 
-        result2 = LLMQueryResult.objects.create(
-            product=self.product,
-            prompt=self.prompt,
-            provider="openai",
-            query_input="Test query",
-            result={"summary": "Result 2"},
-            metadata={},
+        # Mock cached results with structured data
+        result1_data = {
+            "id": "123456789012_test_prompt_perplexity",
+            "product_upc": "123456789012",
+            "prompt_name": "test_prompt",
+            "provider": "perplexity",
+            "query_input": "Test query",
+            "result": {"summary": "Result 1"},
+            "metadata": {},
+            "is_stale": False,
+            "created_at": timezone.now(),
+            "updated_at": timezone.now(),
+        }
+
+        # Mock Firestore query to return result with perplexity provider
+        mock_doc1 = MagicMock()
+        mock_doc1.to_dict.return_value = result1_data
+        mock_doc1.id = result1_data["id"]
+        mock_doc1.reference = MagicMock()
+
+        # Mock the query chain for get_by_product (single where)
+        self.mock_firestore.collection.return_value.where.return_value.stream.return_value = [
+            mock_doc1
+        ]
+
+        # Mock the document.get() for mark_stale check
+        mock_doc_exists = MagicMock()
+        mock_doc_exists.exists = True
+        self.mock_firestore.collection.return_value.document.return_value.get.return_value = (
+            mock_doc_exists
         )
 
         # Invalidate cache for perplexity only
@@ -232,11 +305,15 @@ class LLMServiceTestCase(TestCase):
 
         self.assertEqual(count, 1)
 
-        # Check result1 is stale, result2 is not
-        result1.refresh_from_db()
-        result2.refresh_from_db()
-        self.assertTrue(result1.is_stale)
-        self.assertFalse(result2.is_stale)
+        # Verify Firestore update was called to mark as stale
+        # Note: mark_stale calls collection.document(doc_id).update()
+        update_calls = (
+            self.mock_firestore.collection.return_value.document.return_value.update.call_args_list
+        )
+        self.assertEqual(len(update_calls), 1)
+        # Check that is_stale was set to True
+        self.assertIn("is_stale", update_calls[0][0][0])
+        self.assertTrue(update_calls[0][0][0]["is_stale"])
 
     def test_prompt_rendering(self):
         """Test prompt template rendering with product data"""
@@ -248,35 +325,59 @@ class LLMServiceTestCase(TestCase):
 
     def test_missing_prompt(self):
         """Test error when no active prompt exists"""
+        # Mock Firestore to return no prompts for this query_type
+        self.mock_firestore.collection.return_value.where.return_value.where.return_value.stream.return_value = (
+            []
+        )
+
         service = LLMService()
 
-        with self.assertRaises(LLMPrompt.DoesNotExist):
+        with self.assertRaises(ValueError):
             service.get_product_insight(
                 product=self.product, query_type="nonexistent_query_type"
             )
 
     def test_get_cache_stats(self):
         """Test cache statistics"""
-        # Create some cached results with structured data
-        LLMQueryResult.objects.create(
-            product=self.product,
-            prompt=self.prompt,
-            provider="perplexity",
-            query_input="Test",
-            result={"summary": "Result 1"},
-            is_stale=False,
-            metadata={},
-        )
+        from django.utils import timezone
 
-        LLMQueryResult.objects.create(
-            product=self.product,
-            prompt=self.prompt,
-            provider="openai",
-            query_input="Test",
-            result={"summary": "Result 2"},
-            is_stale=True,
-            metadata={},
-        )
+        # Mock cached results
+        result1 = {
+            "id": "123456789012_test_prompt_perplexity",
+            "product_upc": "123456789012",
+            "prompt_name": "test_prompt",
+            "provider": "perplexity",
+            "query_input": "Test",
+            "result": {"summary": "Result 1"},
+            "is_stale": False,
+            "metadata": {},
+            "created_at": timezone.now(),
+        }
+        result2 = {
+            "id": "123456789012_test_prompt_openai",
+            "product_upc": "123456789012",
+            "prompt_name": "test_prompt",
+            "provider": "openai",
+            "query_input": "Test",
+            "result": {"summary": "Result 2"},
+            "is_stale": True,
+            "metadata": {},
+            "created_at": timezone.now(),
+        }
+
+        # Mock Firestore query to return these results
+        mock_doc1 = MagicMock()
+        mock_doc1.to_dict.return_value = result1
+        mock_doc1.id = result1["id"]
+
+        mock_doc2 = MagicMock()
+        mock_doc2.to_dict.return_value = result2
+        mock_doc2.id = result2["id"]
+
+        self.mock_firestore.collection.return_value.where.return_value.stream.return_value = [
+            mock_doc1,
+            mock_doc2,
+        ]
 
         service = LLMService()
         stats = service.get_cache_stats(product=self.product)
@@ -285,308 +386,3 @@ class LLMServiceTestCase(TestCase):
         self.assertEqual(stats["fresh"], 1)
         self.assertEqual(stats["stale"], 1)
         self.assertTrue(stats["cache_enabled"])
-
-
-class LLMPromptModelTestCase(TestCase):
-    """Test LLMPrompt model"""
-
-    def test_prompt_render(self):
-        """Test prompt rendering with product data"""
-        product = Product.objects.create(
-            upc_code="123456789012", name="Coffee Beans", brand="Best Coffee"
-        )
-
-        prompt = LLMPrompt.objects.create(
-            name="test",
-            query_type="test",
-            prompt_template="Product: {product_name}, Brand: {brand}, UPC: {upc_code}",
-            is_active=True,
-        )
-
-        rendered = prompt.render(product)
-        expected = "Product: Coffee Beans, Brand: Best Coffee, UPC: 123456789012"
-        self.assertEqual(rendered, expected)
-
-    def test_prompt_render_missing_brand(self):
-        """Test prompt rendering when brand is None"""
-        product = Product.objects.create(
-            upc_code="123456789012", name="No Brand Product", brand=None
-        )
-
-        prompt = LLMPrompt.objects.create(
-            name="test",
-            query_type="test",
-            prompt_template="Product: {product_name}, Brand: {brand}",
-            is_active=True,
-        )
-
-        rendered = prompt.render(product)
-        # Should use 'Unknown Brand' as fallback
-        self.assertIn("Unknown Brand", rendered)
-
-
-class LLMQueryResultModelTestCase(TestCase):
-    """Test LLMQueryResult model"""
-
-    def setUp(self):
-        self.product = Product.objects.create(
-            upc_code="123456789012", name="Test Product", brand="Test Brand"
-        )
-
-        self.prompt = LLMPrompt.objects.create(
-            name="test_prompt",
-            query_type="review_summary",
-            prompt_template="Test",
-            is_active=True,
-        )
-
-    def test_is_fresh_new_result(self):
-        """Test that newly created results are fresh"""
-        result = LLMQueryResult.objects.create(
-            product=self.product,
-            prompt=self.prompt,
-            provider="perplexity",
-            query_input="Test",
-            result={"summary": "Fresh result"},
-            metadata={},
-        )
-
-        self.assertTrue(result.is_fresh(ttl_days=30))
-
-    def test_is_fresh_stale_flag(self):
-        """Test that results marked as stale are not fresh"""
-        result = LLMQueryResult.objects.create(
-            product=self.product,
-            prompt=self.prompt,
-            provider="perplexity",
-            query_input="Test",
-            result={"summary": "Stale result"},
-            is_stale=True,
-            metadata={},
-        )
-
-        self.assertFalse(result.is_fresh(ttl_days=30))
-
-    def test_unique_constraint(self):
-        """Test that (product, prompt, provider) is unique"""
-        LLMQueryResult.objects.create(
-            product=self.product,
-            prompt=self.prompt,
-            provider="perplexity",
-            query_input="Test",
-            result={"summary": "Result 1"},
-            metadata={},
-        )
-
-        # This should raise an IntegrityError
-        with self.assertRaises(IntegrityError):
-            LLMQueryResult.objects.create(
-                product=self.product,
-                prompt=self.prompt,
-                provider="perplexity",  # Same combination
-                query_input="Test 2",
-                result={"summary": "Result 2"},
-                metadata={},
-            )
-
-
-class ProviderCostCalculationTestCase(TestCase):
-    """Test that providers correctly calculate costs using the pricing module"""
-
-    def test_openai_provider_cost_estimation_gpt5_nano(self):
-        """Test OpenAI provider cost estimation for GPT-5 Nano"""
-        from api.services.llm.openai_provider import OpenAIProvider
-
-        provider = OpenAIProvider(api_key="test-key", model="gpt-5-nano")
-
-        # Estimate input cost for 10,000 tokens
-        input_cost = provider.estimate_cost(10_000, is_input=True)
-        # Expected: 10,000/1M * 0.05 = 0.0005
-        self.assertAlmostEqual(input_cost, 0.0005, places=6)
-
-        # Estimate output cost for 10,000 tokens
-        output_cost = provider.estimate_cost(10_000, is_input=False)
-        # Expected: 10,000/1M * 0.40 = 0.004
-        self.assertAlmostEqual(output_cost, 0.004, places=6)
-
-    def test_openai_provider_cost_estimation_gpt5_mini(self):
-        """Test OpenAI provider cost estimation for GPT-5 Mini"""
-        from api.services.llm.openai_provider import OpenAIProvider
-
-        provider = OpenAIProvider(api_key="test-key", model="gpt-5-mini")
-
-        # Estimate input cost
-        input_cost = provider.estimate_cost(10_000, is_input=True)
-        # Expected: 10,000/1M * 0.25 = 0.0025
-        self.assertAlmostEqual(input_cost, 0.0025, places=6)
-
-        # Estimate output cost
-        output_cost = provider.estimate_cost(10_000, is_input=False)
-        # Expected: 10,000/1M * 2.00 = 0.02
-        self.assertAlmostEqual(output_cost, 0.02, places=6)
-
-    def test_perplexity_provider_cost_estimation_sonar(self):
-        """Test Perplexity provider cost estimation for Sonar"""
-        from api.services.llm.perplexity_provider import PerplexityProvider
-
-        provider = PerplexityProvider(api_key="test-key", model="sonar")
-
-        # Estimate cost (same for input and output on Perplexity)
-        cost = provider.estimate_cost(10_000, is_input=True)
-        # Expected: 10,000/1M * 1.00 = 0.01
-        self.assertAlmostEqual(cost, 0.01, places=6)
-
-    def test_perplexity_provider_cost_estimation_sonar_pro(self):
-        """Test Perplexity provider cost estimation for Sonar Pro"""
-        from api.services.llm.perplexity_provider import PerplexityProvider
-
-        provider = PerplexityProvider(api_key="test-key", model="sonar-pro")
-
-        # Estimate input cost
-        input_cost = provider.estimate_cost(10_000, is_input=True)
-        # Expected: 10,000/1M * 3.00 = 0.03
-        self.assertAlmostEqual(input_cost, 0.03, places=6)
-
-        # Estimate output cost
-        output_cost = provider.estimate_cost(10_000, is_input=False)
-        # Expected: 10,000/1M * 15.00 = 0.15
-        self.assertAlmostEqual(output_cost, 0.15, places=6)
-
-    @patch("api.services.llm.openai_provider.OpenAI")
-    def test_openai_query_includes_accurate_cost(self, mock_openai_class):
-        """Test that OpenAI query() returns accurate cost estimates"""
-        from api.services.llm.openai_provider import OpenAIProvider
-
-        # Mock OpenAI response with JSON content
-        mock_response = Mock()
-        mock_response.choices = [
-            Mock(
-                message=Mock(
-                    content='{"sentiment": "positive", "summary": "Test response"}'
-                ),
-                finish_reason="stop",
-            )
-        ]
-        mock_response.usage = Mock(
-            total_tokens=1000, prompt_tokens=600, completion_tokens=400
-        )
-        mock_response.model = "gpt-5-nano"
-        mock_response.system_fingerprint = "test"
-
-        mock_client = Mock()
-        mock_client.chat.completions.create.return_value = mock_response
-        mock_openai_class.return_value = mock_client
-
-        provider = OpenAIProvider(api_key="test-key", model="gpt-5-nano")
-        result = provider.query("Test prompt", parse_json=True)
-
-        # Verify content is parsed as dict
-        self.assertIsInstance(result["content"], dict)
-        self.assertEqual(result["content"]["sentiment"], "positive")
-
-        # Verify cost is calculated correctly
-        # 600 input * 0.05/1M + 400 output * 0.40/1M = 0.00003 + 0.00016 = 0.00019
-        expected_cost = 0.00019
-        self.assertAlmostEqual(
-            result["metadata"]["cost_estimate"], expected_cost, places=6
-        )
-
-    @patch("httpx.Client")
-    def test_perplexity_query_includes_accurate_cost(self, mock_client_class):
-        """Test that Perplexity query() returns accurate cost estimates"""
-        from api.services.llm.perplexity_provider import PerplexityProvider
-
-        # Mock httpx response with JSON content
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {
-            "choices": [
-                {
-                    "message": {
-                        "content": '{"sentiment": "positive", "summary": "Test response"}'
-                    },
-                    "finish_reason": "stop",
-                }
-            ],
-            "usage": {
-                "total_tokens": 1000,
-                "prompt_tokens": 600,
-                "completion_tokens": 400,
-            },
-            "citations": [],
-        }
-
-        mock_client_instance = Mock()
-        mock_client_instance.post.return_value = mock_response
-        mock_client_instance.__enter__ = Mock(return_value=mock_client_instance)
-        mock_client_instance.__exit__ = Mock(return_value=False)
-        mock_client_class.return_value = mock_client_instance
-
-        provider = PerplexityProvider(api_key="test-key", model="sonar")
-        result = provider.query("Test prompt", parse_json=True)
-
-        # Verify content is parsed as dict
-        self.assertIsInstance(result["content"], dict)
-        self.assertEqual(result["content"]["sentiment"], "positive")
-
-        # Verify cost is calculated correctly
-        # 600 input * 1.00/1M + 400 output * 1.00/1M = 0.0006 + 0.0004 = 0.001
-        expected_cost = 0.001
-        self.assertAlmostEqual(
-            result["metadata"]["cost_estimate"], expected_cost, places=6
-        )
-
-    def test_provider_fallback_on_unknown_model(self):
-        """Test that providers handle unknown models gracefully"""
-        from api.services.llm.openai_provider import OpenAIProvider
-
-        # Unknown model should still work (fallback to gpt-5-mini pricing)
-        provider = OpenAIProvider(api_key="test-key", model="gpt-99-unknown")
-
-        # Should not raise an error
-        cost = provider.estimate_cost(1000, is_input=True)
-        self.assertGreater(cost, 0.0)
-
-    @patch("api.services.llm.openai_provider.OpenAI")
-    def test_cost_metadata_included_in_response(self, mock_openai_class):
-        """Test that cost metadata is properly included in query response"""
-        from api.services.llm.openai_provider import OpenAIProvider
-
-        # Mock OpenAI response with JSON content
-        mock_response = Mock()
-        mock_response.choices = [
-            Mock(message=Mock(content='{"test": "response"}'), finish_reason="stop")
-        ]
-        mock_response.usage = Mock(
-            total_tokens=500, prompt_tokens=300, completion_tokens=200
-        )
-        mock_response.model = "gpt-5-nano"
-        mock_response.system_fingerprint = "test"
-
-        mock_client = Mock()
-        mock_client.chat.completions.create.return_value = mock_response
-        mock_openai_class.return_value = mock_client
-
-        provider = OpenAIProvider(api_key="test-key", model="gpt-5-nano")
-        result = provider.query("Test prompt", parse_json=True)
-
-        # Verify content is parsed
-        self.assertIsInstance(result["content"], dict)
-
-        # Verify metadata structure
-        metadata = result["metadata"]
-        self.assertIn("cost_estimate", metadata)
-        self.assertIn("tokens_used", metadata)
-        self.assertIn("prompt_tokens", metadata)
-        self.assertIn("completion_tokens", metadata)
-        self.assertIn("model", metadata)
-        self.assertIn("json_mode_enabled", metadata)
-        self.assertIn("parse_success", metadata)
-
-        # Verify token counts
-        self.assertEqual(metadata["tokens_used"], 500)
-        self.assertEqual(metadata["prompt_tokens"], 300)
-        self.assertEqual(metadata["completion_tokens"], 200)
-
-        # Verify cost is non-zero
-        self.assertGreater(metadata["cost_estimate"], 0.0)

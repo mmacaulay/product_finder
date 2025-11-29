@@ -15,7 +15,6 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 
-from django.contrib import admin
 from django.urls import path, include
 from django.views.generic import RedirectView
 from django.conf import settings
@@ -23,49 +22,51 @@ from django.conf.urls.static import static
 from graphene_django.views import GraphQLView
 from api.graphql.schema import schema
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.http import JsonResponse
+from api.firebase_auth import verify_token
 
 
 class AuthenticatedGraphQLView(GraphQLView):
     """
-    GraphQL view that requires JWT authentication.
-    In development mode, authentication can be bypassed if DEBUG is True.
+    GraphQL view that requires Firebase Auth authentication.
+    In development mode (DEBUG=True), authentication is bypassed completely.
     """
 
     def dispatch(self, request, *args, **kwargs):
-        # In development, allow access to GraphiQL without authentication
-        if settings.DEBUG and request.method == "GET":
+        # In development, bypass authentication entirely
+        if settings.DEBUG:
             return super().dispatch(request, *args, **kwargs)
 
-        # For all other requests (including POST queries), require authentication
-        auth = JWTAuthentication()
-        try:
-            user_auth_tuple = auth.authenticate(request)
-            if user_auth_tuple is not None:
-                request.user, request.auth = user_auth_tuple
-            else:
-                return JsonResponse(
-                    {
-                        "errors": [
-                            {"message": "Authentication credentials were not provided."}
-                        ]
-                    },
-                    status=401,
-                )
-        except Exception as e:
+        # In production, require Firebase Auth token
+        # Extract token from Authorization header
+        auth_header = request.META.get("HTTP_AUTHORIZATION", "")
+        if not auth_header.startswith("Bearer "):
             return JsonResponse(
-                {"errors": [{"message": f"Authentication failed: {str(e)}"}]},
+                {
+                    "errors": [
+                        {"message": "Authentication credentials were not provided."}
+                    ]
+                },
                 status=401,
             )
 
+        token = auth_header.split("Bearer ")[1]
+        user_claims = verify_token(token)
+
+        if user_claims is None:
+            return JsonResponse(
+                {"errors": [{"message": "Invalid or expired token."}]},
+                status=401,
+            )
+
+        # Attach user claims to request for use in resolvers
+        request.firebase_user = user_claims
         return super().dispatch(request, *args, **kwargs)
 
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
     path("api/", include("api.urls")),
-    path("", RedirectView.as_view(url="/api/", permanent=True)),
+    path("", RedirectView.as_view(url="/graphql/", permanent=True)),
     path(
         "graphql/",
         csrf_exempt(
