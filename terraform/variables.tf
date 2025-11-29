@@ -26,37 +26,6 @@ variable "environment" {
   }
 }
 
-# Database Configuration
-variable "database_version" {
-  description = "PostgreSQL version"
-  type        = string
-  default     = "POSTGRES_15"
-}
-
-variable "database_tier" {
-  description = "Cloud SQL tier (db-f1-micro for dev/staging, db-custom-* for production)"
-  type        = string
-  default     = "db-f1-micro"
-}
-
-variable "database_disk_size" {
-  description = "Database disk size in GB"
-  type        = number
-  default     = 10
-}
-
-variable "database_name" {
-  description = "Database name"
-  type        = string
-  default     = "product_finder"
-}
-
-variable "database_user" {
-  description = "Database user name"
-  type        = string
-  default     = "product_finder_user"
-}
-
 # Cloud Run Configuration
 variable "cloud_run_cpu" {
   description = "CPU allocation for Cloud Run (e.g., '1', '2', '4')"
