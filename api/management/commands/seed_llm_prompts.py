@@ -3,7 +3,7 @@ Management command to seed initial LLM prompts.
 """
 
 from django.core.management.base import BaseCommand
-from api.models import LLMPrompt
+from api.dao import LLMPromptDAO
 
 
 class Command(BaseCommand):
@@ -16,7 +16,7 @@ class Command(BaseCommand):
                 "description": "Basic review summary for products with structured JSON output",
                 "query_type": "review_summary",
                 "schema_version": "1.0",
-                "prompt_template": """Analyze user reviews for the product "{product_name}" by {brand} (UPC: {upc_code}).
+                "prompt_template": """Analyze user reviews for the product "{name}" by {brand} (UPC: {upc_code}).
 
 You MUST respond with ONLY valid JSON in this exact format. Do not include markdown, code blocks, or any other text:
 
@@ -43,7 +43,7 @@ Instructions:
                 "description": "Detailed review analysis with structured JSON output",
                 "query_type": "review_summary_detailed",
                 "schema_version": "1.0",
-                "prompt_template": """Perform a comprehensive analysis of user reviews for "{product_name}" by {brand} (UPC: {upc_code}).
+                "prompt_template": """Perform a comprehensive analysis of user reviews for "{name}" by {brand} (UPC: {upc_code}).
 
 You MUST respond with ONLY valid JSON in this exact format:
 
@@ -69,7 +69,7 @@ Include in your analysis:
                 "description": "Safety and ingredient analysis with structured JSON output",
                 "query_type": "safety_analysis",
                 "schema_version": "1.0",
-                "prompt_template": """Analyze the safety profile and ingredients of "{product_name}" by {brand} (UPC: {upc_code}).
+                "prompt_template": """Analyze the safety profile and ingredients of "{name}" by {brand} (UPC: {upc_code}).
 
 You MUST respond with ONLY valid JSON in this exact format:
 
@@ -99,23 +99,26 @@ Instructions:
             },
         ]
 
+        dao = LLMPromptDAO()
         created_count = 0
         updated_count = 0
 
         for prompt_data in prompts:
-            prompt, created = LLMPrompt.objects.update_or_create(
-                name=prompt_data["name"], defaults=prompt_data
-            )
+            # Check if prompt exists
+            existing = dao.get_by_name(prompt_data["name"])
 
-            if created:
-                created_count += 1
-                self.stdout.write(
-                    self.style.SUCCESS(f"✓ Created prompt: {prompt.name}")
-                )
-            else:
+            # Create or update using DAO
+            prompt = dao.create_or_update(**prompt_data)
+
+            if existing:
                 updated_count += 1
                 self.stdout.write(
-                    self.style.WARNING(f"→ Updated prompt: {prompt.name}")
+                    self.style.WARNING(f"→ Updated prompt: {prompt['name']}")
+                )
+            else:
+                created_count += 1
+                self.stdout.write(
+                    self.style.SUCCESS(f"✓ Created prompt: {prompt['name']}")
                 )
 
         self.stdout.write(

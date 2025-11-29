@@ -1,7 +1,5 @@
 import graphene
-from graphene_django import DjangoObjectType
 from graphene.types.generic import GenericScalar
-from api.models import Product, LLMPrompt
 from api.services.llm import LLMService
 import logging
 
@@ -120,8 +118,19 @@ class SafetyAnalysisType(graphene.ObjectType):
         return self.get("_metadata", {}).get("generated_at")
 
 
-class ProductType(DjangoObjectType):
-    # Add LLM insight fields with structured types
+class ProductType(graphene.ObjectType):
+    """Product data from Firestore"""
+
+    # Product fields
+    id = graphene.String(description="Product document ID (same as UPC)")
+    upc_code = graphene.String(description="UPC barcode")
+    name = graphene.String(description="Product name")
+    brand = graphene.String(description="Brand name")
+    image_url = graphene.String(description="Product image URL")
+    created_at = graphene.DateTime(description="When product was created")
+    updated_at = graphene.DateTime(description="When product was last updated")
+
+    # LLM insight fields with structured types
     review_summary = graphene.Field(
         ReviewSummaryType,
         provider=graphene.String(required=False),
@@ -135,18 +144,6 @@ class ProductType(DjangoObjectType):
         force_refresh=graphene.Boolean(required=False),
         description="Get a structured safety analysis for this product",
     )
-
-    class Meta:
-        model = Product
-        fields = (
-            "id",
-            "upc_code",
-            "name",
-            "brand",
-            "image_url",
-            "created_at",
-            "updated_at",
-        )
 
     def resolve_review_summary(self, info, provider=None, force_refresh=False):
         """
@@ -163,9 +160,10 @@ class ProductType(DjangoObjectType):
             llm_service = LLMService()
             provider_name = provider or llm_service.default_provider_name
 
+            # self is now a dict from Firestore DAO
             # Get insight from LLM service (handles caching internally)
             result = llm_service.get_product_insight(
-                product=self,
+                product=self,  # Pass the dict
                 query_type="review_summary",
                 provider=provider,
                 force_refresh=force_refresh,
@@ -177,7 +175,7 @@ class ProductType(DjangoObjectType):
                 content["_metadata"] = {
                     "provider": provider_name,
                     "cached": result["cached"],
-                    "generated_at": result["result_obj"].created_at,
+                    "generated_at": result["result_obj"].get("created_at"),
                 }
                 return content
             else:
@@ -185,9 +183,6 @@ class ProductType(DjangoObjectType):
                 logger.warning(f"Non-dict content returned: {content}")
                 return None
 
-        except LLMPrompt.DoesNotExist:
-            logger.warning("No active 'review_summary' prompt found")
-            return None
         except Exception as e:
             logger.error(f"Error resolving review_summary: {e}", exc_info=True)
             return None
@@ -207,9 +202,10 @@ class ProductType(DjangoObjectType):
             llm_service = LLMService()
             provider_name = provider or llm_service.default_provider_name
 
+            # self is now a dict from Firestore DAO
             # Get insight from LLM service (handles caching internally)
             result = llm_service.get_product_insight(
-                product=self,
+                product=self,  # Pass the dict
                 query_type="safety_analysis",
                 provider=provider,
                 force_refresh=force_refresh,
@@ -221,16 +217,13 @@ class ProductType(DjangoObjectType):
                 content["_metadata"] = {
                     "provider": provider_name,
                     "cached": result["cached"],
-                    "generated_at": result["result_obj"].created_at,
+                    "generated_at": result["result_obj"].get("created_at"),
                 }
                 return content
             else:
                 logger.warning(f"Non-dict content returned: {content}")
                 return None
 
-        except LLMPrompt.DoesNotExist:
-            logger.warning("No active 'safety_analysis' prompt found")
-            return None
         except Exception as e:
             logger.error(f"Error resolving safety_analysis: {e}", exc_info=True)
             return None
