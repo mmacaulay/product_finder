@@ -12,39 +12,6 @@ resource "google_secret_manager_secret" "django_secret_key" {
   depends_on = [google_project_service.required_apis]
 }
 
-resource "google_secret_manager_secret" "django_superuser_username" {
-  secret_id = "${var.app_name}-${var.environment}-django-superuser-username"
-
-  replication {
-    auto {}
-  }
-
-  depends_on = [google_project_service.required_apis]
-}
-
-resource "google_secret_manager_secret" "django_superuser_email" {
-  secret_id = "${var.app_name}-${var.environment}-django-superuser-email"
-
-  replication {
-    auto {}
-  }
-
-  depends_on = [google_project_service.required_apis]
-}
-
-resource "google_secret_manager_secret" "django_superuser_password" {
-  secret_id = "${var.app_name}-${var.environment}-django-superuser-password"
-
-  replication {
-    auto {}
-  }
-
-  depends_on = [google_project_service.required_apis]
-}
-
-resource "random_id" "secret_placeholder" {
-  byte_length = 16
-}
 
 # DE Product API Base URL
 resource "google_secret_manager_secret" "de_product_api_base_url" {
@@ -189,32 +156,8 @@ resource "google_secret_manager_secret_version" "default_llm_provider" {
 # IAM: Grant Cloud Run service account access to secrets
 # Note: Using individual resources instead of for_each to avoid dependency issues during initial apply
 
-resource "google_secret_manager_secret_iam_member" "database_url" {
-  secret_id = google_secret_manager_secret.database_url.secret_id
-  role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:${google_service_account.cloud_run_sa.email}"
-}
-
 resource "google_secret_manager_secret_iam_member" "django_secret_key" {
   secret_id = google_secret_manager_secret.django_secret_key.secret_id
-  role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:${google_service_account.cloud_run_sa.email}"
-}
-
-resource "google_secret_manager_secret_iam_member" "django_superuser_username" {
-  secret_id = google_secret_manager_secret.django_superuser_username.secret_id
-  role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:${google_service_account.cloud_run_sa.email}"
-}
-
-resource "google_secret_manager_secret_iam_member" "django_superuser_email" {
-  secret_id = google_secret_manager_secret.django_superuser_email.secret_id
-  role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:${google_service_account.cloud_run_sa.email}"
-}
-
-resource "google_secret_manager_secret_iam_member" "django_superuser_password" {
-  secret_id = google_secret_manager_secret.django_superuser_password.secret_id
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${google_service_account.cloud_run_sa.email}"
 }

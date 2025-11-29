@@ -1,8 +1,72 @@
-# Deployment Quick Reference
+# Firestore Migration Deployment Guide
 
-This is a quick reference guide for deploying the Product Finder application to GCP Cloud Run.
+This guide covers deploying the Firestore-based application to GCP Cloud Run.
 
-For complete documentation, see **[docs/deployment/gcp-setup.md](./docs/deployment/gcp-setup.md)**.
+**Note:** The application now uses Firestore + Firebase Auth instead of PostgreSQL + Django Auth.
+
+## Quick Start: Firestore Migration Deployment
+
+### Step 1: Create Firestore Database (One-time)
+
+1. Go to [Firebase Console](https://console.firebase.google.com/)
+2. Add your GCP project (or select existing)
+3. Navigate to **Build → Firestore Database**
+4. Click **Create database**
+5. Choose **Production mode** (Native mode)
+6. Select location: `us-east1` (to match Cloud Run region)
+7. Wait for provisioning (~1 minute)
+
+### Step 2: Update Terraform Configuration
+
+Your Terraform still has PostgreSQL resources that need to be removed. You have two options:
+
+**Option A: I'll help you update Terraform** (recommended - let me know and I'll create the updated files)
+
+**Option B: Manual updates** - Remove these resources from `terraform/main.tf`:
+- All Cloud SQL resources (`google_sql_*`)
+- VPC networking (`google_compute_network`, `google_vpc_access_connector`)
+- Database URL secret
+- Update Cloud Run to use Firestore environment variables
+
+### Step 3: Deploy
+
+Once Terraform is updated:
+
+```bash
+cd terraform
+terraform init
+terraform plan -out=tfplan
+terraform apply tfplan
+
+# Run seed task to populate Firestore
+gcloud run jobs execute seed-llm-prompts --region=us-east1
+```
+
+### Step 4: Verify
+
+```bash
+# Get Cloud Run URL
+terraform output cloud_run_url
+
+# Test GraphQL endpoint
+curl https://your-service-url/graphql/
+```
+
+## Cost Comparison
+
+**Before (PostgreSQL):**
+- Cloud SQL: ~$10-50/month
+- VPC networking: ~$10/month
+- **Total: ~$20-60/month**
+
+**After (Firestore):**
+- Firestore: **$0** (Always Free Tier - 1GB storage, 50K reads/20K writes per day)
+- Firebase Auth: **$0** (free tier)
+- **Total: $0 for low traffic** 🎉
+
+---
+
+## Old Deployment Documentation (Pre-Firestore Migration)
 
 ## Prerequisites Checklist
 

@@ -28,12 +28,11 @@ provider "google" {
 resource "google_project_service" "required_apis" {
   for_each = toset([
     "run.googleapis.com",
-    "sqladmin.googleapis.com",
     "secretmanager.googleapis.com",
     "artifactregistry.googleapis.com",
-    "vpcaccess.googleapis.com",
-    "compute.googleapis.com",
-    "servicenetworking.googleapis.com"
+    "firestore.googleapis.com",
+    "firebase.googleapis.com",
+    "identitytoolkit.googleapis.com"
   ])
 
   service            = each.value
@@ -50,132 +49,17 @@ resource "google_artifact_registry_repository" "docker_repo" {
   depends_on = [google_project_service.required_apis]
 }
 
-# VPC for Cloud SQL
-resource "google_compute_network" "vpc" {
-  name                    = "${var.app_name}-${var.environment}-vpc"
-  auto_create_subnetworks = false
-
-  depends_on = [google_project_service.required_apis]
+# Service Account for Cloud Run
+resource "google_service_account" "cloud_run_sa" {
+  account_id   = "${var.app_name}-${var.environment}-cr-sa"
+  display_name = "Cloud Run service account for ${var.app_name} ${var.environment}"
 }
 
-resource "google_compute_global_address" "private_ip_address" {
-  name          = "${var.app_name}-${var.environment}-private-ip"
-  purpose       = "VPC_PEERING"
-  address_type  = "INTERNAL"
-  prefix_length = 16
-  network       = google_compute_network.vpc.id
-}
-
-resource "google_service_networking_connection" "private_vpc_connection" {
-  network                 = google_compute_network.vpc.id
-  service                 = "servicenetworking.googleapis.com"
-  reserved_peering_ranges = [google_compute_global_address.private_ip_address.name]
-
-  depends_on = [google_project_service.required_apis]
-}
-
-# Serverless VPC Access Connector for Cloud Run
-resource "google_vpc_access_connector" "connector" {
-  # Name must be <= 25 chars and match pattern ^[a-z][-a-z0-9]{0,23}[a-z0-9]$
-  name          = "pf-${var.environment}-connector" # pf-staging-connector = 20 chars
-  region        = var.region
-  network       = google_compute_network.vpc.name
-  ip_cidr_range = "10.8.0.0/28"
-
-  depends_on = [google_project_service.required_apis]
-}
-
-# Cloud SQL PostgreSQL Instance
-resource "random_id" "db_name_suffix" {
-  byte_length = 4
-}
-
-resource "google_sql_database_instance" "postgres" {
-  name             = "${var.app_name}-${var.environment}-${random_id.db_name_suffix.hex}"
-  database_version = var.database_version
-  region           = var.region
-
-  deletion_protection = var.environment == "production" ? true : false
-
-  settings {
-    tier              = var.database_tier
-    availability_type = var.environment == "production" ? "REGIONAL" : "ZONAL"
-    disk_size         = var.database_disk_size
-    disk_type         = "PD_SSD"
-
-    backup_configuration {
-      enabled                        = true
-      point_in_time_recovery_enabled = var.environment == "production" ? true : false
-      start_time                     = "03:00"
-      transaction_log_retention_days = 7
-      backup_retention_settings {
-        retained_backups = var.environment == "production" ? 30 : 7
-      }
-    }
-
-    ip_configuration {
-      ipv4_enabled    = false
-      private_network = google_compute_network.vpc.id
-      ssl_mode        = "ENCRYPTED_ONLY"
-    }
-
-    maintenance_window {
-      day          = 7 # Sunday
-      hour         = 3
-      update_track = "stable"
-    }
-
-    insights_config {
-      query_insights_enabled  = true
-      query_string_length     = 1024
-      record_application_tags = true
-    }
-  }
-
-  depends_on = [
-    google_service_networking_connection.private_vpc_connection,
-    google_project_service.required_apis
-  ]
-}
-
-# Database
-resource "google_sql_database" "database" {
-  name     = var.database_name
-  instance = google_sql_database_instance.postgres.name
-}
-
-# Database user
-resource "random_password" "db_password" {
-  length  = 32
-  special = true
-}
-
-resource "google_sql_user" "db_user" {
-  name     = var.database_user
-  instance = google_sql_database_instance.postgres.name
-  password = random_password.db_password.result
-}
-
-# Store database URL in Secret Manager
-resource "google_secret_manager_secret" "database_url" {
-  secret_id = "${var.app_name}-${var.environment}-database-url"
-
-  replication {
-    auto {}
-  }
-
-  depends_on = [google_project_service.required_apis]
-}
-
-resource "google_secret_manager_secret_version" "database_url" {
-  secret = google_secret_manager_secret.database_url.id
-  secret_data = format(
-    "postgresql://%s:%s@/%s?host=/cloudsql/%s",
-    google_sql_user.db_user.name,
-    random_password.db_password.result,
-    google_sql_database.database.name,
-    google_sql_database_instance.postgres.connection_name
-  )
+# IAM: Grant Firestore access
+resource "google_project_iam_member" "cloud_run_datastore_user" {
+  project = var.project_id
+  role    = "roles/datastore.user"
+  member  = "serviceAccount:${google_service_account.cloud_run_sa.email}"
 }
 
 # Cloud Run Service
@@ -184,11 +68,6 @@ resource "google_cloud_run_v2_service" "app" {
   location = var.region
 
   template {
-    # Annotations for Cloud SQL connection
-    annotations = {
-      "run.googleapis.com/cloudsql-instances" = google_sql_database_instance.postgres.connection_name
-    }
-
     containers {
       # Image tag is managed by GitHub Actions deployment
       # Terraform ignores changes to avoid drift on every deploy
@@ -218,15 +97,15 @@ resource "google_cloud_run_v2_service" "app" {
         value = var.environment
       }
 
-      # Database connection via Unix socket
+      # Firestore configuration
       env {
-        name = "DATABASE_URL"
-        value_source {
-          secret_key_ref {
-            secret  = google_secret_manager_secret.database_url.secret_id
-            version = "latest"
-          }
-        }
+        name  = "FIRESTORE_PROJECT_ID"
+        value = var.project_id
+      }
+
+      env {
+        name  = "GOOGLE_CLOUD_PROJECT"
+        value = var.project_id
       }
 
       env {
@@ -320,7 +199,7 @@ resource "google_cloud_run_v2_service" "app" {
 
       startup_probe {
         http_get {
-          path = "/admin/login/" # Django admin login as health check
+          path = "/graphql/" # GraphQL endpoint as health check
         }
         initial_delay_seconds = 10
         timeout_seconds       = 3
@@ -330,17 +209,12 @@ resource "google_cloud_run_v2_service" "app" {
 
       liveness_probe {
         http_get {
-          path = "/admin/login/"
+          path = "/graphql/"
         }
         initial_delay_seconds = 30
         timeout_seconds       = 3
         period_seconds        = 30
       }
-    }
-
-    vpc_access {
-      connector = google_vpc_access_connector.connector.id
-      egress    = "PRIVATE_RANGES_ONLY"
     }
 
     max_instance_request_concurrency = 80
@@ -376,28 +250,15 @@ resource "google_cloud_run_v2_service" "app" {
 
   depends_on = [
     google_project_service.required_apis,
-    google_secret_manager_secret_iam_member.database_url,
     google_secret_manager_secret_iam_member.de_product_api_base_url,
     google_secret_manager_secret_iam_member.de_product_app_key,
     google_secret_manager_secret_iam_member.de_product_auth_key,
     google_secret_manager_secret_iam_member.de_product_field_names,
     google_secret_manager_secret_iam_member.perplexity_api_key,
     google_secret_manager_secret_iam_member.openai_api_key,
-    google_secret_manager_secret_iam_member.default_llm_provider
+    google_secret_manager_secret_iam_member.default_llm_provider,
+    google_project_iam_member.cloud_run_datastore_user
   ]
-}
-
-# Service Account for Cloud Run
-resource "google_service_account" "cloud_run_sa" {
-  account_id   = "${var.app_name}-${var.environment}-cr-sa"
-  display_name = "Cloud Run service account for ${var.app_name} ${var.environment}"
-}
-
-# IAM: Cloud SQL Client
-resource "google_project_iam_member" "cloud_run_sql_client" {
-  project = var.project_id
-  role    = "roles/cloudsql.client"
-  member  = "serviceAccount:${google_service_account.cloud_run_sa.email}"
 }
 
 # Make Cloud Run service publicly accessible (or restrict as needed)
@@ -416,46 +277,7 @@ resource "google_cloud_run_v2_service_iam_policy" "noauth" {
   policy_data = data.google_iam_policy.noauth.policy_data
 }
 
-module "createsuperuser" {
-  source          = "./modules/cloud_run_task_runner"
-  location        = var.region
-  service_account = google_service_account.cloud_run_sa.email
-  job_name        = "django-createsuperuser"
-  image           = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.docker_repo.repository_id}/${var.app_name}:latest"
-
-  command = ["python"]
-  args    = ["manage.py", "createsuperuser", "--noinput"]
-
-  secret_env = {
-    DATABASE_URL = {
-      secret  = google_secret_manager_secret.database_url.secret_id
-      version = "latest"
-    }
-    SECRET_KEY = {
-      secret  = google_secret_manager_secret.django_secret_key.secret_id
-      version = "latest"
-    }
-    DJANGO_SUPERUSER_USERNAME = {
-      secret  = google_secret_manager_secret.django_superuser_username.secret_id
-      version = "latest"
-    }
-    DJANGO_SUPERUSER_EMAIL = {
-      secret  = google_secret_manager_secret.django_superuser_email.secret_id
-      version = "latest"
-    }
-    DJANGO_SUPERUSER_PASSWORD = {
-      secret  = google_secret_manager_secret.django_superuser_password.secret_id
-      version = "latest"
-    }
-  }
-
-  env_vars = {}
-
-  cloudsql_connection    = google_sql_database_instance.postgres.connection_name
-  cloudsql_enable_volume = true
-  vpc_connector          = google_vpc_access_connector.connector.id
-}
-
+# Seed LLM prompts task
 module "seed_llm_prompts" {
   source          = "./modules/cloud_run_task_runner"
   location        = var.region
@@ -467,19 +289,18 @@ module "seed_llm_prompts" {
   args    = ["manage.py", "seed_llm_prompts"]
 
   secret_env = {
-    DATABASE_URL = {
-      secret  = google_secret_manager_secret.database_url.secret_id
-      version = "latest"
-    }
     SECRET_KEY = {
       secret  = google_secret_manager_secret.django_secret_key.secret_id
       version = "latest"
     }
   }
 
-  env_vars = {}
+  env_vars = {
+    FIRESTORE_PROJECT_ID = var.project_id
+    GOOGLE_CLOUD_PROJECT = var.project_id
+  }
 
-  cloudsql_connection    = google_sql_database_instance.postgres.connection_name
-  cloudsql_enable_volume = true
-  vpc_connector          = google_vpc_access_connector.connector.id
+  cloudsql_connection    = null
+  cloudsql_enable_volume = false
+  vpc_connector          = null
 }
