@@ -302,5 +302,4 @@ module "seed_llm_prompts" {
 
   cloudsql_connection    = null
   cloudsql_enable_volume = false
-  vpc_connector          = null
 }
