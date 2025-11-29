@@ -1,0 +1,11 @@
+{
+  "name": "product-finder",
+  "version": "1.0.0",
+  "description": "Product finder application with Firebase emulators",
+  "scripts": {
+    "emulators": "firebase emulators:start"
+  },
+  "devDependencies": {
+    "firebase-tools": "^13.0.0"
+  }
+}
