@@ -26,11 +26,6 @@ variable "environment" {
   }
 }
 
-variable "firestore_project_id" {
-  description = "Firestore Project ID"
-  type        = string
-}
-
 # Cloud Run Configuration
 variable "cloud_run_cpu" {
   description = "CPU allocation for Cloud Run (e.g., '1', '2', '4')"

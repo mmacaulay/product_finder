@@ -6,9 +6,6 @@ region     = "us-east1"
 app_name    = "product-finder"
 environment = "staging"
 
-# Database Configuration
-firestore_project_id = "your-firestore-project-id"
-
 # Cloud Run Configuration
 cloud_run_cpu                      = "1"
 cloud_run_memory                   = "512Mi"  # Increase for production (e.g., "2Gi")

@@ -189,13 +189,8 @@ resource "google_cloud_run_v2_service" "app" {
       }
 
       env {
-        name = "FIRESTORE_DATABASE"
-        value_source {
-          secret_key_ref {
-            secret  = google_secret_manager_secret.firestore_database.secret_id
-            version = "latest"
-          }
-        }
+        name  = "FIRESTORE_DATABASE"
+        value = "${var.app_name}-${var.environment}"
       }
 
       resources {
@@ -308,6 +303,7 @@ module "seed_llm_prompts" {
   env_vars = {
     FIRESTORE_PROJECT_ID = var.project_id
     GOOGLE_CLOUD_PROJECT = var.project_id
+    FIRESTORE_DATABASE   = "${var.app_name}-${var.environment}"
   }
 
   cloudsql_connection    = null

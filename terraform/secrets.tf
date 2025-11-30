@@ -153,17 +153,6 @@ resource "google_secret_manager_secret_version" "default_llm_provider" {
   }
 }
 
-# Firestore Settings
-resource "google_secret_manager_secret" "firestore_database" {
-  secret_id = "${var.app_name}-${var.environment}-firestore-database"
-
-  replication {
-    auto {}
-  }
-
-  depends_on = [google_project_service.required_apis]
-}
-
 # IAM: Grant Cloud Run service account access to secrets
 # Note: Using individual resources instead of for_each to avoid dependency issues during initial apply
 
@@ -211,12 +200,6 @@ resource "google_secret_manager_secret_iam_member" "openai_api_key" {
 
 resource "google_secret_manager_secret_iam_member" "default_llm_provider" {
   secret_id = google_secret_manager_secret.default_llm_provider.secret_id
-  role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:${google_service_account.cloud_run_sa.email}"
-}
-
-resource "google_secret_manager_secret_iam_member" "firestore_database" {
-  secret_id = google_secret_manager_secret.firestore_database.secret_id
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${google_service_account.cloud_run_sa.email}"
 }
