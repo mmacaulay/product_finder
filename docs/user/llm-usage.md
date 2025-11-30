@@ -357,8 +357,8 @@ In `.env`:
 
 ```bash
 # Use different Perplexity models
-PERPLEXITY_MODEL=llama-3.1-sonar-small-128k-online  # Cheaper
-PERPLEXITY_MODEL=llama-3.1-sonar-large-128k-online  # Better quality
+PERPLEXITY_MODEL=sonar              # Default model
+PERPLEXITY_MODEL=sonar-pro          # Better quality
 
 # Use different OpenAI models
 OPENAI_MODEL=gpt-3.5-turbo     # Cheaper

@@ -248,9 +248,7 @@ LLM_CONFIG = {
         },
         "perplexity": {
             "api_key": env("PERPLEXITY_API_KEY", default=""),
-            "model": env(
-                "PERPLEXITY_MODEL", default="llama-3.1-sonar-large-128k-online"
-            ),
+            "model": env("PERPLEXITY_MODEL", default="sonar"),
             "max_tokens": env.int("PERPLEXITY_MAX_TOKENS", default=500),
             "temperature": env.float("PERPLEXITY_TEMPERATURE", default=0.7),
         },

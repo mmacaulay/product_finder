@@ -169,6 +169,11 @@ resource "google_cloud_run_v2_service" "app" {
       }
 
       env {
+        name  = "PERPLEXITY_MODEL"
+        value = "sonar"
+      }
+
+      env {
         name = "OPENAI_API_KEY"
         value_source {
           secret_key_ref {
