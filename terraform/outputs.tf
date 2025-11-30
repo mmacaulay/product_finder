@@ -26,14 +26,11 @@ output "service_account_email" {
 output "secret_ids" {
   description = "Secret Manager secret IDs"
   value = {
-    django_secret_key       = google_secret_manager_secret.django_secret_key.secret_id
-    de_product_api_base_url = google_secret_manager_secret.de_product_api_base_url.secret_id
-    de_product_app_key      = google_secret_manager_secret.de_product_app_key.secret_id
-    de_product_auth_key     = google_secret_manager_secret.de_product_auth_key.secret_id
-    de_product_field_names  = google_secret_manager_secret.de_product_field_names.secret_id
-    perplexity_api_key      = google_secret_manager_secret.perplexity_api_key.secret_id
-    openai_api_key          = google_secret_manager_secret.openai_api_key.secret_id
-    default_llm_provider    = google_secret_manager_secret.default_llm_provider.secret_id
+    django_secret_key   = google_secret_manager_secret.django_secret_key.secret_id
+    de_product_app_key  = google_secret_manager_secret.de_product_app_key.secret_id
+    de_product_auth_key = google_secret_manager_secret.de_product_auth_key.secret_id
+    perplexity_api_key  = google_secret_manager_secret.perplexity_api_key.secret_id
+    openai_api_key      = google_secret_manager_secret.openai_api_key.secret_id
   }
 }
 

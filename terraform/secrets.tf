@@ -12,27 +12,6 @@ resource "google_secret_manager_secret" "django_secret_key" {
   depends_on = [google_project_service.required_apis]
 }
 
-
-# DE Product API Base URL
-resource "google_secret_manager_secret" "de_product_api_base_url" {
-  secret_id = "${var.app_name}-${var.environment}-de-product-api-base-url"
-
-  replication {
-    auto {}
-  }
-
-  depends_on = [google_project_service.required_apis]
-}
-
-resource "google_secret_manager_secret_version" "de_product_api_base_url" {
-  secret      = google_secret_manager_secret.de_product_api_base_url.id
-  secret_data = "https://digit-eyes.com/gtin/v3_0/"
-
-  lifecycle {
-    ignore_changes = [secret_data]
-  }
-}
-
 # DE Product App Key
 resource "google_secret_manager_secret" "de_product_app_key" {
   secret_id = "${var.app_name}-${var.environment}-de-product-app-key"
@@ -67,26 +46,6 @@ resource "google_secret_manager_secret" "de_product_auth_key" {
 resource "google_secret_manager_secret_version" "de_product_auth_key" {
   secret      = google_secret_manager_secret.de_product_auth_key.id
   secret_data = "CHANGE_ME" # Placeholder - update via script
-
-  lifecycle {
-    ignore_changes = [secret_data]
-  }
-}
-
-# DE Product Field Names
-resource "google_secret_manager_secret" "de_product_field_names" {
-  secret_id = "${var.app_name}-${var.environment}-de-product-field-names"
-
-  replication {
-    auto {}
-  }
-
-  depends_on = [google_project_service.required_apis]
-}
-
-resource "google_secret_manager_secret_version" "de_product_field_names" {
-  secret      = google_secret_manager_secret.de_product_field_names.id
-  secret_data = "description,uom,usage,brand,language,website,product_web_page,nutrition,formattedNutrition,ingredients,manufacturer,image,thumbnail,categories"
 
   lifecycle {
     ignore_changes = [secret_data]
@@ -133,37 +92,11 @@ resource "google_secret_manager_secret_version" "openai_api_key" {
   }
 }
 
-# Default LLM Provider
-resource "google_secret_manager_secret" "default_llm_provider" {
-  secret_id = "${var.app_name}-${var.environment}-default-llm-provider"
-
-  replication {
-    auto {}
-  }
-
-  depends_on = [google_project_service.required_apis]
-}
-
-resource "google_secret_manager_secret_version" "default_llm_provider" {
-  secret      = google_secret_manager_secret.default_llm_provider.id
-  secret_data = "perplexity"
-
-  lifecycle {
-    ignore_changes = [secret_data]
-  }
-}
-
 # IAM: Grant Cloud Run service account access to secrets
 # Note: Using individual resources instead of for_each to avoid dependency issues during initial apply
 
 resource "google_secret_manager_secret_iam_member" "django_secret_key" {
   secret_id = google_secret_manager_secret.django_secret_key.secret_id
-  role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:${google_service_account.cloud_run_sa.email}"
-}
-
-resource "google_secret_manager_secret_iam_member" "de_product_api_base_url" {
-  secret_id = google_secret_manager_secret.de_product_api_base_url.secret_id
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${google_service_account.cloud_run_sa.email}"
 }
@@ -180,12 +113,6 @@ resource "google_secret_manager_secret_iam_member" "de_product_auth_key" {
   member    = "serviceAccount:${google_service_account.cloud_run_sa.email}"
 }
 
-resource "google_secret_manager_secret_iam_member" "de_product_field_names" {
-  secret_id = google_secret_manager_secret.de_product_field_names.secret_id
-  role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:${google_service_account.cloud_run_sa.email}"
-}
-
 resource "google_secret_manager_secret_iam_member" "perplexity_api_key" {
   secret_id = google_secret_manager_secret.perplexity_api_key.secret_id
   role      = "roles/secretmanager.secretAccessor"
@@ -194,12 +121,6 @@ resource "google_secret_manager_secret_iam_member" "perplexity_api_key" {
 
 resource "google_secret_manager_secret_iam_member" "openai_api_key" {
   secret_id = google_secret_manager_secret.openai_api_key.secret_id
-  role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:${google_service_account.cloud_run_sa.email}"
-}
-
-resource "google_secret_manager_secret_iam_member" "default_llm_provider" {
-  secret_id = google_secret_manager_secret.default_llm_provider.secret_id
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${google_service_account.cloud_run_sa.email}"
 }

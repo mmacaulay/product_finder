@@ -119,13 +119,8 @@ resource "google_cloud_run_v2_service" "app" {
       }
 
       env {
-        name = "DE_PRODUCT_API_BASE_URL"
-        value_source {
-          secret_key_ref {
-            secret  = google_secret_manager_secret.de_product_api_base_url.secret_id
-            version = "latest"
-          }
-        }
+        name  = "DE_PRODUCT_API_BASE_URL"
+        value = "https://digit-eyes.com/gtin/v3_0/"
       }
 
       env {
@@ -149,13 +144,8 @@ resource "google_cloud_run_v2_service" "app" {
       }
 
       env {
-        name = "DE_PRODUCT_FIELD_NAMES"
-        value_source {
-          secret_key_ref {
-            secret  = google_secret_manager_secret.de_product_field_names.secret_id
-            version = "latest"
-          }
-        }
+        name  = "DE_PRODUCT_FIELD_NAMES"
+        value = "description,uom,usage,brand,language,website,product_web_page,nutrition,formattedNutrition,ingredients,manufacturer,image,thumbnail,categories"
       }
 
       env {
@@ -184,13 +174,8 @@ resource "google_cloud_run_v2_service" "app" {
       }
 
       env {
-        name = "DEFAULT_LLM_PROVIDER"
-        value_source {
-          secret_key_ref {
-            secret  = google_secret_manager_secret.default_llm_provider.secret_id
-            version = "latest"
-          }
-        }
+        name  = "DEFAULT_LLM_PROVIDER"
+        value = "perplexity"
       }
 
       env {
@@ -260,13 +245,10 @@ resource "google_cloud_run_v2_service" "app" {
 
   depends_on = [
     google_project_service.required_apis,
-    google_secret_manager_secret_iam_member.de_product_api_base_url,
     google_secret_manager_secret_iam_member.de_product_app_key,
     google_secret_manager_secret_iam_member.de_product_auth_key,
-    google_secret_manager_secret_iam_member.de_product_field_names,
     google_secret_manager_secret_iam_member.perplexity_api_key,
     google_secret_manager_secret_iam_member.openai_api_key,
-    google_secret_manager_secret_iam_member.default_llm_provider,
     google_project_iam_member.cloud_run_datastore_user
   ]
 }
