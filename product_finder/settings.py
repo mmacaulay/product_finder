@@ -272,6 +272,7 @@ DE_PRODUCT_CONFIG = {
 FIRESTORE_PROJECT_ID = env(
     "FIRESTORE_PROJECT_ID", default=env("GOOGLE_CLOUD_PROJECT", default="")
 )
+FIRESTORE_DATABASE = env("FIRESTORE_DATABASE", default="(default)")
 FIRESTORE_EMULATOR_HOST = env("FIRESTORE_EMULATOR_HOST", default=None)
 
 # Firebase Auth Configuration
