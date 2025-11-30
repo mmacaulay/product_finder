@@ -79,7 +79,7 @@ resource "google_cloud_run_v2_service" "app" {
 
       env {
         name  = "DEBUG"
-        value = "true"
+        value = "false"
       }
 
       env {
