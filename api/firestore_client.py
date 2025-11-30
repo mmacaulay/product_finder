@@ -16,7 +16,11 @@ class FirestoreClient:
             if emulator:
                 os.environ["FIRESTORE_EMULATOR_HOST"] = emulator
 
+            # Cloud Run provides credentials automatically via Application Default Credentials (ADC)
+            # No need to explicitly pass credentials - the service account configured in Terraform
+            # (with roles/datastore.user permission) is automatically used
             project_id = getattr(settings, "FIRESTORE_PROJECT_ID", None)
-            cls._client = firestore.Client(project=project_id)
+            database = getattr(settings, "FIRESTORE_DATABASE", "(default)")
+            cls._client = firestore.Client(project=project_id, database=database)
 
         return cls._client
