@@ -34,7 +34,6 @@ output "secret_ids" {
     perplexity_api_key      = google_secret_manager_secret.perplexity_api_key.secret_id
     openai_api_key          = google_secret_manager_secret.openai_api_key.secret_id
     default_llm_provider    = google_secret_manager_secret.default_llm_provider.secret_id
-    firestore_project_id    = google_secret_manager_secret.firestore_project_id.secret_id
     firestore_database      = google_secret_manager_secret.firestore_database.secret_id
   }
 }
