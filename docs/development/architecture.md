@@ -50,11 +50,12 @@
 │  │  - upc_code      │  │  - name          │  │  - product_id (FK) │   │
 │  │  - name          │  │  - description   │  │  - prompt_id (FK)  │   │
 │  │  - brand         │  │  - prompt_templ  │  │  - provider        │   │
-│  │  - de_product... │  │  - query_type    │  │  - query_input     │   │
-│  │                  │  │  - is_active     │  │  - result          │   │
-│  └────────┬─────────┘  └──────────────────┘  │  - metadata        │   │
-│           │                                   │  - is_stale        │   │
-│           │   ┌──────────────────────────────┤  - created_at      │   │
+│  │  - current_prov  │  │  - query_type    │  │  - query_input     │   │
+│  │  - de_product... │  │  - is_active     │  │  - result          │   │
+│  │  - barcodes_d... │  │                  │  │  - metadata        │   │
+│  └────────┬─────────┘  └──────────────────┘  │  - is_stale        │   │
+│           │                                   │  - created_at      │   │
+│           │   ┌──────────────────────────────┤                    │   │
 │           └───┤  Foreign Key Relationships   │                    │   │
 │               └──────────────────────────────┴────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────────┘
@@ -128,22 +129,28 @@ Return Fresh Result to User
 
 ## Key Design Patterns
 
-### 1. Strategy Pattern
+### 1. Adapter Pattern (Product APIs)
+- **ProductAdapter** base class defines standard product data model
+- Concrete adapters (DEProductAdapter, BarcodesDataAdapter) transform API-specific responses
+- Easy to add new product API providers without changing GraphQL layer
+- Multiple API responses can be cached per product
+
+### 2. Strategy Pattern (LLM Providers)
 - **BaseLLMProvider** as interface
 - Concrete providers (OpenAI, Perplexity) implement the interface
 - Easy to add new providers without changing core logic
 
-### 2. Template Method Pattern
+### 3. Template Method Pattern
 - **LLMPrompt** model stores reusable prompt templates
 - Variables like `{product_name}`, `{brand}` are replaced at runtime
-- Allows non-technical users to update prompts via Django admin
+- Prompts can be updated programmatically or via database tools
 
 ### 3. Cache-Aside Pattern
 - Check cache first (LLMQueryResult)
 - On miss, query provider and populate cache
 - Reduces API calls and improves response time
 
-### 4. Facade Pattern
+### 5. Facade Pattern
 - **LLMService** provides simple interface to complex operations
 - Hides provider selection, caching, and error handling from GraphQL layer
 

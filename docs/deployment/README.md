@@ -54,7 +54,6 @@ git push origin main
 After deployment, you'll have:
 
 - **Application**: `https://product-finder-staging-xxx.run.app`
-- **Admin Interface**: `https://product-finder-staging-xxx.run.app/admin/`
 - **GraphQL API**: `https://product-finder-staging-xxx.run.app/graphql`
 
 ### Monitoring & Management
