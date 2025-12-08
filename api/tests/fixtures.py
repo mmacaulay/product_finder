@@ -46,3 +46,69 @@ def create_mock_de_product_response(
 def create_mock_de_product_empty_response():
     """Helper function to create an empty DE Product API response"""
     return SAMPLE_DE_PRODUCT_EMPTY_RESPONSE
+
+
+# Sample Barcodes Data API response structures
+SAMPLE_BARCODES_DATA_RESPONSE = {
+    "product": {
+        "barcode_number": "123456789012",
+        "barcode_type": "UPC",
+        "barcode_formats": "UPC 123456789012",
+        "title": "Test Product Title",
+        "category": "Food > Snacks",
+        "manufacturer": "Test Manufacturer",
+        "brand": "Test Brand",
+        "model": "",
+        "mpn": "",
+        "color": "",
+        "size": "",
+        "weight": "",
+        "images": ["https://example.com/test-image.jpg"],
+        "description": "Test product description",
+        "ingredients": "Test ingredients",
+        "nutrition_facts": "Test nutrition facts",
+        "energy_efficiency_class": "",
+        "stores": [],
+        "reviews": [],
+    }
+}
+
+SAMPLE_BARCODES_DATA_EMPTY_RESPONSE = {}
+
+
+def create_mock_barcodes_data_response(
+    title="Test Product",
+    brand="Test Brand",
+    upc="123456789012",
+    images=None,
+    manufacturer=None,
+):
+    """Helper function to create a mock Barcodes Data API response"""
+    product_data = {
+        "barcode_number": upc,
+        "barcode_type": "UPC",
+        "barcode_formats": f"UPC {upc}",
+        "title": title,
+        "category": "Food > Snacks",
+        "manufacturer": manufacturer or "Test Manufacturer",
+        "brand": brand,
+        "model": "",
+        "mpn": "",
+        "color": "",
+        "size": "",
+        "weight": "",
+        "images": images or ["https://example.com/test-image.jpg"],
+        "description": "Test product description",
+        "ingredients": "Test ingredients",
+        "nutrition_facts": "Test nutrition facts",
+        "energy_efficiency_class": "",
+        "stores": [],
+        "reviews": [],
+    }
+
+    return {"product": product_data}
+
+
+def create_mock_barcodes_data_empty_response():
+    """Helper function to create an empty Barcodes Data API response"""
+    return SAMPLE_BARCODES_DATA_EMPTY_RESPONSE

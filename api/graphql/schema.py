@@ -104,8 +104,17 @@ class Query(graphene.ObjectType):
 
     def resolve_product_by_id(self, info, id):
         # In Firestore, ID is the UPC code
-        # This uses the same logic as product_by_upc
-        return self.resolve_product_by_upc(info, id)
+        # Use the same logic as product_by_upc
+        dao = ProductDAO()
+        product = dao.get_by_upc(id)
+
+        if product and product.get("raw_api_data") and product.get("api_provider"):
+            # Use the appropriate adapter
+            adapter = get_product_adapter(product["api_provider"])
+            adapted_data = adapter.adapt(product["raw_api_data"])
+            product.update(adapted_data)
+
+        return product
 
 
 schema = graphene.Schema(query=Query)
