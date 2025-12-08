@@ -1,11 +1,16 @@
 import graphene
 from api.dao import ProductDAO
 from api.graphql.types import ProductType
-from api.services.product_api_factory import get_current_api_and_adapter, get_product_adapter
+from api.services.product_api_factory import (
+    get_current_api_and_adapter,
+    get_product_adapter,
+)
 from django.conf import settings
 
 
-def _build_product_fields(adapted_data, current_provider, provider_data_field=None, raw_data=None):
+def _build_product_fields(
+    adapted_data, current_provider, provider_data_field=None, raw_data=None
+):
     """
     Helper function to build product fields from adapted data.
 
@@ -67,7 +72,10 @@ class Query(graphene.ObjectType):
                     # Adapt and update with raw data
                     adapted_data = adapter.adapt(raw_product_data)
                     update_fields = _build_product_fields(
-                        adapted_data, current_provider, provider_data_field, raw_product_data
+                        adapted_data,
+                        current_provider,
+                        provider_data_field,
+                        raw_product_data,
                     )
 
                     dao.update(upc, **update_fields)
@@ -94,7 +102,10 @@ class Query(graphene.ObjectType):
             if raw_product_data:
                 adapted_data = adapter.adapt(raw_product_data)
                 product_fields = _build_product_fields(
-                    adapted_data, current_provider, provider_data_field, raw_product_data
+                    adapted_data,
+                    current_provider,
+                    provider_data_field,
+                    raw_product_data,
                 )
 
                 product = dao.create(upc_code=upc, **product_fields)

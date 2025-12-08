@@ -109,7 +109,10 @@ class BarcodesDataAdapterTest(TestCase):
         raw_data = {
             "title": "Test Product",
             "brand": "Test Brand",
-            "images": ["https://example.com/image1.jpg", "https://example.com/image2.jpg"],
+            "images": [
+                "https://example.com/image1.jpg",
+                "https://example.com/image2.jpg",
+            ],
             "description": "Test description",
             "category": "Food > Snacks",
             "ingredients": "Test ingredients",
@@ -153,7 +156,10 @@ class BarcodesDataAdapterTest(TestCase):
     def test_adapt_image_from_array(self):
         """Test that first image is extracted from images array"""
         raw_data = {
-            "images": ["https://example.com/image1.jpg", "https://example.com/image2.jpg"],
+            "images": [
+                "https://example.com/image1.jpg",
+                "https://example.com/image2.jpg",
+            ],
         }
 
         result = self.adapter.adapt(raw_data)

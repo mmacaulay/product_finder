@@ -26,7 +26,8 @@ class DEProductAdapter(ProductAdapter):
             "description": raw_data.get("description", ""),
             "category": raw_data.get("categories", []),
             "ingredients": raw_data.get("ingredients"),
-            "nutrition_facts": raw_data.get("formattedNutrition") or raw_data.get("nutrition"),
+            "nutrition_facts": raw_data.get("formattedNutrition")
+            or raw_data.get("nutrition"),
             "additional_data": {
                 "uom": raw_data.get("uom"),
                 "usage": raw_data.get("usage"),
