@@ -256,6 +256,10 @@ LLM_CONFIG = {
 }
 
 
+# Product API Configuration
+# Select which product lookup API to use: 'de_product' or 'barcodes_data'
+PRODUCT_API_PROVIDER = env("PRODUCT_API_PROVIDER", default="de_product")
+
 # DE Product API Configuration
 DE_PRODUCT_CONFIG = {
     "base_url": env("DE_PRODUCT_API_BASE_URL", default=""),
@@ -263,6 +267,17 @@ DE_PRODUCT_CONFIG = {
     "auth_key": env("DE_PRODUCT_AUTH_KEY", default=""),
     "field_names": env("DE_PRODUCT_FIELD_NAMES", default=""),
     "language": env("DE_PRODUCT_LANGUAGE", default="en"),
+}
+
+# Barcodes Data API Configuration
+BARCODES_DATA_CONFIG = {
+    "base_url": env(
+        "BARCODES_DATA_API_BASE_URL", default="https://barcodes-data.p.rapidapi.com"
+    ),
+    "rapidapi_host": env(
+        "BARCODES_DATA_RAPIDAPI_HOST", default="barcodes-data.p.rapidapi.com"
+    ),
+    "rapidapi_key": env("BARCODES_DATA_RAPIDAPI_KEY", default=""),
 }
 
 

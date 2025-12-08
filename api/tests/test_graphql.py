@@ -37,6 +37,11 @@ class GraphQLQueryTest(FullMockedTestCase):
             "name": "Product One",
             "brand": "Brand A",
             "image_url": None,
+            "current_provider": "de_product",
+            "de_product_data": {
+                "description": "Product One",
+                "brand": "Brand A",
+            },
             "created_at": None,
             "updated_at": None,
         }
@@ -46,6 +51,11 @@ class GraphQLQueryTest(FullMockedTestCase):
             "name": "Product Two",
             "brand": "Brand B",
             "image_url": None,
+            "current_provider": "de_product",
+            "de_product_data": {
+                "description": "Product Two",
+                "brand": "Brand B",
+            },
             "created_at": None,
             "updated_at": None,
         }

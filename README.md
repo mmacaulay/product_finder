@@ -11,8 +11,9 @@ A Django-based GraphQL API for product information lookup with AI-powered insigh
   - Perplexity AI (with real-time web search)
   - OpenAI ChatGPT
 - **Intelligent Caching**: Automatic result caching to reduce costs and improve speed
-- **Admin Interface**: Manage products, prompts, and cached results
-- **External API Integration**: Connects to DE Product API for product data
+- **External API Integration**: Multiple product API providers supported:
+  - DE Product API
+  - Barcodes Data API (RapidAPI)
 
 ## Quick Start
 
@@ -21,7 +22,9 @@ A Django-based GraphQL API for product information lookup with AI-powered insigh
 - Python 3.14+
 - PostgreSQL
 - API keys for:
-  - DE Product API
+  - Product API (choose one or both):
+    - DE Product API
+    - Barcodes Data API (RapidAPI)
   - Perplexity and/or OpenAI (for LLM features)
 
 ### Installation
@@ -58,11 +61,19 @@ DEBUG=True
 JWT_ACCESS_TOKEN_LIFETIME=60  # minutes
 JWT_REFRESH_TOKEN_LIFETIME=7  # days
 
+# Product API Configuration
+PRODUCT_API_PROVIDER=de_product  # or 'barcodes_data'
+
 # DE Product API
 DE_PRODUCT_API_BASE_URL=https://api.example.com
 DE_PRODUCT_APP_KEY=your_app_key
 DE_PRODUCT_AUTH_KEY=your_auth_key
 DE_PRODUCT_FIELD_NAMES=description,brand
+
+# Barcodes Data API (RapidAPI) - optional alternative
+BARCODES_DATA_API_BASE_URL=https://barcodes-data.p.rapidapi.com
+BARCODES_DATA_RAPIDAPI_HOST=barcodes-data.p.rapidapi.com
+BARCODES_DATA_RAPIDAPI_KEY=your-rapidapi-key
 
 # LLM Providers (add at least one)
 PERPLEXITY_API_KEY=pplx-your-key
@@ -87,13 +98,7 @@ uv run python manage.py migrate
 uv run python manage.py seed_llm_prompts
 ```
 
-6. **Create admin user** (optional)
-
-```bash
-uv run python manage.py createsuperuser
-```
-
-7. **Start the server**
+6. **Start the server**
 
 ```bash
 uv run python manage.py runserver
@@ -222,15 +227,6 @@ For complete documentation, see the **[docs/](./docs/)** directory:
 - **[Implementation Guide](./docs/development/implementation.md)** - Technical specification
 - **[Prompt Examples](./docs/development/prompts.md)** - Sample prompts and best practices
 
-## Admin Interface
-
-Access the Django admin at: http://localhost:8000/admin/
-
-Manage:
-- Products
-- LLM Prompts (create custom AI queries)
-- LLM Query Results (view cached responses)
-
 ## Testing
 
 ```bash
@@ -327,11 +323,12 @@ product_finder/
 
 ### Adding New LLM Query Types
 
-1. Create a prompt in Django Admin:
-   - Name: `my_custom_query`
-   - Query Type: `custom_analysis`
-   - Prompt Template: Your prompt with `{product_name}`, `{brand}`, etc.
-   - Is Active: ✓
+1. Create a prompt in Firestore or using management commands:
+   - Add a new `LLMPrompt` document with:
+     - Name: `my_custom_query`
+     - Query Type: `custom_analysis`
+     - Prompt Template: Your prompt with `{product_name}`, `{brand}`, etc.
+     - Is Active: true
 
 2. Add resolver to GraphQL schema (optional):
 

@@ -12,12 +12,18 @@ class ProductDAO:
     def create(
         self,
         upc_code: str,
-        name: str,
-        brand: str = None,
-        image_url: str = None,
-        de_product_data: dict = None,
+        current_provider: str = None,
+        **provider_data_fields,
     ) -> dict:
-        """Create a product. Uses UPC as document ID for uniqueness."""
+        """
+        Create a product. Uses UPC as document ID for uniqueness.
+
+        Args:
+            upc_code: The UPC code
+            current_provider: The API provider currently reflected in top-level fields
+            **provider_data_fields: Additional fields including provider-specific raw data
+                                   (e.g., de_product_data={...}, barcodes_data_data={...})
+        """
         doc_ref = self.collection.document(upc_code)
 
         # Check if exists
@@ -26,13 +32,14 @@ class ProductDAO:
 
         data = {
             "upc_code": upc_code,
-            "name": name,
-            "brand": brand,
-            "image_url": image_url,
-            "de_product_data": de_product_data,
+            "current_provider": current_provider,
             "created_at": firestore.SERVER_TIMESTAMP,
             "updated_at": firestore.SERVER_TIMESTAMP,
         }
+
+        # Add any additional fields (name, brand, image_url, provider data, etc.)
+        data.update(provider_data_fields)
+
         doc_ref.set(data)
         return self._doc_to_dict(doc_ref.get())
 

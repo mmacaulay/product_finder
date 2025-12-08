@@ -92,6 +92,26 @@ resource "google_secret_manager_secret_version" "openai_api_key" {
   }
 }
 
+# Barcodes Data API Key (RapidAPI)
+resource "google_secret_manager_secret" "barcodes_data_api_key" {
+  secret_id = "${var.app_name}-${var.environment}-barcodes-data-api-key"
+
+  replication {
+    auto {}
+  }
+
+  depends_on = [google_project_service.required_apis]
+}
+
+resource "google_secret_manager_secret_version" "barcodes_data_api_key" {
+  secret      = google_secret_manager_secret.barcodes_data_api_key.id
+  secret_data = "CHANGE_ME" # Placeholder - update via script
+
+  lifecycle {
+    ignore_changes = [secret_data]
+  }
+}
+
 # IAM: Grant Cloud Run service account access to secrets
 # Note: Using individual resources instead of for_each to avoid dependency issues during initial apply
 
@@ -121,6 +141,12 @@ resource "google_secret_manager_secret_iam_member" "perplexity_api_key" {
 
 resource "google_secret_manager_secret_iam_member" "openai_api_key" {
   secret_id = google_secret_manager_secret.openai_api_key.secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.cloud_run_sa.email}"
+}
+
+resource "google_secret_manager_secret_iam_member" "barcodes_data_api_key" {
+  secret_id = google_secret_manager_secret.barcodes_data_api_key.secret_id
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${google_service_account.cloud_run_sa.email}"
 }

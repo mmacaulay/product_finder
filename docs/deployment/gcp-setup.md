@@ -33,7 +33,9 @@ Before you begin, ensure you have:
    - Admin access to configure secrets
 
 4. **API Credentials**
-   - DE Product API credentials (app key & auth key)
+   - Product API credentials (choose one or both):
+     - DE Product API (app key & auth key)
+     - Barcodes Data API (RapidAPI key)
    - Perplexity API key (optional)
    - OpenAI API key (optional)
 
@@ -52,7 +54,7 @@ Before you begin, ensure you have:
 ┌──────────────────────────────────────────────┐
 │            Cloud Run Service                 │
 │  ┌────────────────────────────────────────┐  │
-│  │  Django + GraphQL + Admin + Gunicorn   │  │
+│  │  Django + GraphQL + Gunicorn           │  │
 │  │  WhiteNoise (static files)             │  │
 │  └────────────────────────────────────────┘  │
 └──────────────────────────────────────────────┘
@@ -128,7 +130,9 @@ chmod +x scripts/create-secrets.sh
 
 The script will prompt you for:
 - Django SECRET_KEY (or generate one)
-- DE Product API credentials
+- Product API credentials:
+  - DE Product API credentials (if using)
+  - Barcodes Data API key (if using)
 - Perplexity API key
 - OpenAI API key
 
@@ -277,52 +281,14 @@ gcloud run services describe product-finder-staging --region=us-east1 --format='
 
 Test endpoints:
 ```bash
-# Django admin (should show login page)
-curl https://your-app-url.run.app/admin/
-
-# GraphQL endpoint
+# GraphQL endpoint (main API)
 curl https://your-app-url.run.app/graphql
 
 # Health check
-curl https://your-app-url.run.app/admin/login/
+curl https://your-app-url.run.app/
 ```
 
-### Step 2: Create Django Superuser
-
-Connect to Cloud Run to create an admin user:
-
-```bash
-# Get Cloud SQL connection name
-gcloud sql instances list
-
-# Connect via Cloud SQL Proxy (in one terminal)
-cloud-sql-proxy your-project:us-east1:your-instance-name
-
-# In another terminal, use the deployed Cloud Run service to run management command
-gcloud run services describe product-finder-staging --region=us-east1 --format='value(status.url)'
-
-# Option 1: Use gcloud run jobs (if configured)
-# Option 2: Manually via Cloud SQL proxy and local Django
-```
-
-**Easier method - Local with Cloud SQL Proxy:**
-
-```bash
-# Install Cloud SQL Proxy
-# https://cloud.google.com/sql/docs/postgres/sql-proxy
-
-# Get connection name
-INSTANCE_CONNECTION_NAME=$(terraform output -raw database_connection_name)
-
-# Start proxy
-./cloud-sql-proxy "$INSTANCE_CONNECTION_NAME"
-
-# In another terminal, with proper DATABASE_URL set:
-export DATABASE_URL="postgresql://user:pass@localhost:5432/product_finder"
-python manage.py createsuperuser
-```
-
-### Step 3: Configure ALLOWED_HOSTS
+### Step 2: Configure ALLOWED_HOSTS
 
 Update Cloud Run environment variable:
 
@@ -341,17 +307,13 @@ gcloud run services update product-finder-staging \
 
 Or add to Terraform's Cloud Run environment variables.
 
-### Step 4: Test the Application
+### Step 3: Test the Application
 
-1. **Django Admin:**
-   - Navigate to `https://your-url.run.app/admin/`
-   - Log in with superuser credentials
-
-2. **GraphQL API:**
+1. **GraphQL API:**
    - Navigate to `https://your-url.run.app/graphql`
    - Try a test query
 
-3. **API Functionality:**
+2. **API Functionality:**
    - Test product lookup
    - Test LLM queries
 
