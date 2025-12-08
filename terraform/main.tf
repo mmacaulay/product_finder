@@ -118,6 +118,13 @@ resource "google_cloud_run_v2_service" "app" {
         }
       }
 
+      # Product API Provider Configuration
+      env {
+        name  = "PRODUCT_API_PROVIDER"
+        value = "barcodes_data"
+      }
+
+      # DE Product API Configuration
       env {
         name  = "DE_PRODUCT_API_BASE_URL"
         value = "https://digit-eyes.com/gtin/v3_0/"
@@ -146,6 +153,27 @@ resource "google_cloud_run_v2_service" "app" {
       env {
         name  = "DE_PRODUCT_FIELD_NAMES"
         value = "description,uom,usage,brand,language,website,product_web_page,nutrition,formattedNutrition,ingredients,manufacturer,image,thumbnail,categories"
+      }
+
+      # Barcodes Data API Configuration
+      env {
+        name  = "BARCODES_DATA_API_BASE_URL"
+        value = "https://barcodes-data.p.rapidapi.com"
+      }
+
+      env {
+        name  = "BARCODES_DATA_RAPIDAPI_HOST"
+        value = "barcodes-data.p.rapidapi.com"
+      }
+
+      env {
+        name = "BARCODES_DATA_RAPIDAPI_KEY"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.barcodes_data_api_key.secret_id
+            version = "latest"
+          }
+        }
       }
 
       env {
@@ -247,6 +275,7 @@ resource "google_cloud_run_v2_service" "app" {
     google_project_service.required_apis,
     google_secret_manager_secret_iam_member.de_product_app_key,
     google_secret_manager_secret_iam_member.de_product_auth_key,
+    google_secret_manager_secret_iam_member.barcodes_data_api_key,
     google_secret_manager_secret_iam_member.perplexity_api_key,
     google_secret_manager_secret_iam_member.openai_api_key,
     google_project_iam_member.cloud_run_datastore_user
